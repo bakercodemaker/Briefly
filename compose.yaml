@@ -17,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bin/rails server -b 0.0.0.0
+    command: bin/dev
     environment:
       OWNER_PASSWORD: ${OWNER_PASSWORD:-briefly-development}
       RAILS_ENV: development

@@ -1,24 +1,25 @@
-# README
+# Briefly
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Briefly is a private Personal Workspace for creating detailed, source-faithful Briefs from selected public YouTube videos. A read-only Demo Library gives recruiters a safe public view of the finished reading experience.
 
-Things you may want to cover:
+## Local development
 
-* Ruby version
+Docker Desktop is the only required host dependency.
 
-* System dependencies
+```sh
+cp .env.example .env
+docker compose up --build
+```
 
-* Configuration
+Open <http://localhost:3000>. In a second terminal, prepare the database once:
 
-* Database creation
+```sh
+docker compose run --rm web bin/rails db:prepare
+```
 
-* Database initialization
+Run the automated checks with:
 
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+```sh
+docker compose run --rm -e RAILS_ENV=test web bin/rails test
+docker compose run --rm web yarn typecheck
+```

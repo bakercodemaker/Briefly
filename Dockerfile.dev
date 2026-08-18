@@ -10,7 +10,9 @@ RUN apt-get update -qq && \
 
 COPY --from=node /usr/local /usr/local
 
-RUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg && corepack enable
+RUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg && \
+    corepack enable && \
+    corepack prepare yarn@1.22.22 --activate
 
 COPY Gemfile ./
 RUN bundle install
