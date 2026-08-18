@@ -1,0 +1,17 @@
+<main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+  <%= link_to "Briefly", root_path, class: "text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700" %>
+  <h1 class="mt-6 text-4xl font-semibold tracking-tight text-slate-950">Unlock your Personal Workspace</h1>
+  <p class="mt-4 text-slate-600">This area is private and uses a single owner password.</p>
+
+  <% if alert %>
+    <p class="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-800"><%= alert %></p>
+  <% end %>
+
+  <%= form_with url: access_path, class: "mt-8 space-y-4" do |form| %>
+    <div>
+      <%= form.label :password, "Owner password", class: "block text-sm font-medium text-slate-800" %>
+      <%= form.password_field :password, autofocus: true, autocomplete: "current-password", class: "mt-2 block w-full rounded-lg border border-slate-300 px-3 py-3" %>
+    </div>
+    <%= form.submit "Unlock workspace", class: "w-full rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white" %>
+  <% end %>
+</main>

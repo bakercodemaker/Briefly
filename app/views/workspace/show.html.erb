@@ -1,0 +1,13 @@
+<main class="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-16 sm:px-10">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Briefly / Personal Workspace</p>
+      <h1 class="mt-4 text-4xl font-semibold tracking-tight text-slate-950">Read with focus.</h1>
+    </div>
+    <%= button_to "Lock workspace", access_path, method: :delete, class: "rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800" %>
+  </div>
+  <section class="mt-10 rounded-3xl bg-slate-950 p-8 text-white">
+    <h2 class="text-2xl font-semibold">Your first Brief starts with a source.</h2>
+    <p class="mt-3 max-w-xl text-slate-300">Analysis Requests will appear here once URL submission is added in the next slice.</p>
+  </section>
+</main>
