@@ -6,7 +6,9 @@ Rails.application.routes.draw do
   delete "access", to: "access#destroy"
 
   get "workspace", to: "workspace#show"
-  resources :analysis_requests, only: :create
+  resources :analysis_requests, only: :create do
+    post :retry, on: :member
+  end
   resources :briefs, only: :show
   get "demo", to: "demo_library#show"
 

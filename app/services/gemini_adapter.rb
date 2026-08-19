@@ -3,17 +3,21 @@ require "net/http"
 
 class GeminiAdapter
   class Error < StandardError; end
+  class TerminalError < Error; end
+  class RetryableError < Error; end
 
   INTERACTIONS_URI = URI("https://generativelanguage.googleapis.com/v1beta/interactions")
 
   def analyze(source_url:, output_language:)
     response = post_interaction(source_url:, output_language:)
     response_body = JSON.parse(response.body)
-    raise Error, response_body.dig("error", "message") || "Gemini did not complete the analysis." unless response.is_a?(Net::HTTPSuccess)
+    raise provider_error(response, response_body) unless response.is_a?(Net::HTTPSuccess)
 
     generated_brief_from(JSON.parse(response_body.fetch("output_text")), source_url:, output_language:)
   rescue JSON::ParserError, KeyError, ArgumentError => error
-    raise Error, "Gemini returned an unreadable Brief: #{error.message}"
+    raise RetryableError, "Gemini returned an unreadable Brief: #{error.message}"
+  rescue Net::OpenTimeout, Net::ReadTimeout, SocketError => error
+    raise RetryableError, "Gemini is temporarily unavailable: #{error.message}"
   end
 
   private
@@ -34,6 +38,13 @@ class GeminiAdapter
     Net::HTTP.start(INTERACTIONS_URI.host, INTERACTIONS_URI.port, use_ssl: true, open_timeout: 10, read_timeout: 120) do |http|
       http.request(request)
     end
+  end
+
+  def provider_error(response, response_body)
+    message = response_body.dig("error", "message") || "Gemini did not complete the analysis."
+    return RetryableError.new(message) if [ 408, 429 ].include?(response.code.to_i) || response.code.to_i >= 500
+
+    TerminalError.new(message)
   end
 
   def prompt(output_language)

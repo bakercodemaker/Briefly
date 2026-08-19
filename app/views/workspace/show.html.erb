@@ -25,14 +25,23 @@
       <h2 class="text-xl font-semibold text-slate-950">Analysis Requests</h2>
       <ul class="mt-4 space-y-3">
         <% @analysis_requests.each do |analysis_request| %>
-          <li class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+          <li class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
             <a href="<%= analysis_request.source_url %>" class="min-w-0 truncate text-sm text-slate-700 underline"><%= analysis_request.source_url %></a>
             <div class="flex shrink-0 items-center gap-3">
               <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800"><%= analysis_request.lifecycle_state %></span>
               <% if analysis_request.brief %>
                 <%= link_to "Open Brief", workspace_path(brief_id: analysis_request.brief), class: "text-sm font-semibold text-emerald-700 underline" %>
               <% end %>
+              <% if analysis_request.recoverable_failure? %>
+                <%= button_to "Retry", retry_analysis_request_path(analysis_request), class: "text-sm font-semibold text-emerald-700 underline" %>
+              <% end %>
             </div>
+            <% if analysis_request.failure_message.present? %>
+              <p class="basis-full text-sm text-rose-700"><%= analysis_request.failure_message %></p>
+            <% end %>
+            <% if analysis_request.failed? && !analysis_request.recoverable_failure? %>
+              <p class="basis-full text-sm text-rose-700">This source failure is terminal and cannot be retried.</p>
+            <% end %>
           </li>
         <% end %>
       </ul>

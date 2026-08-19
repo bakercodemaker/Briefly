@@ -7,6 +7,23 @@ class AnalysisRequest < ApplicationRecord
   validates :lifecycle_state, inclusion: { in: LIFECYCLE_STATES }
   validate :source_url_is_a_public_youtube_video
 
+  def recoverable_failure?
+    failed? && recoverable_failure
+  end
+
+  def failed?
+    lifecycle_state == "failed"
+  end
+
+  def retry_after_recoverable_failure!
+    with_lock do
+      return false unless recoverable_failure?
+
+      update!(lifecycle_state: "queued", automatic_retry_count: 0, recoverable_failure: false, failure_message: nil)
+      true
+    end
+  end
+
   private
 
   def source_url_is_a_public_youtube_video

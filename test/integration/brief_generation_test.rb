@@ -70,6 +70,66 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/access"
   end
 
+  test "a terminal source failure is shown without retrying" do
+    adapter = FakeGeminiAdapter.new(GeminiAdapter::TerminalError.new("This video is private or inaccessible."))
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      perform_enqueued_jobs
+
+      analysis_request = AnalysisRequest.last
+      assert_equal "failed", analysis_request.lifecycle_state
+      assert_equal "This video is private or inaccessible.", analysis_request.failure_message
+      assert_not analysis_request.recoverable_failure?
+      assert_equal 0, analysis_request.automatic_retry_count
+      assert_equal 1, adapter.attempts
+
+      get "/workspace"
+
+      assert_select "li", /failed/i
+      assert_select "p", /private or inaccessible/i
+      assert_select "p", /terminal and cannot be retried/i
+      assert_select "form[action=?]", "/analysis_requests/#{analysis_request.id}/retry", count: 0
+    end
+  end
+
+  test "an owner can retry after bounded automatic recovery is exhausted" do
+    adapter = FakeGeminiAdapter.new(
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
+      :success
+    )
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      3.times { perform_enqueued_jobs }
+
+      analysis_request = AnalysisRequest.last
+      assert_equal "failed", analysis_request.lifecycle_state
+      assert analysis_request.recoverable_failure?
+      assert_equal 2, analysis_request.automatic_retry_count
+
+      get "/workspace"
+
+      assert_select "p", /quota is temporarily exhausted/i
+      assert_select "form[action=?]", "/analysis_requests/#{analysis_request.id}/retry"
+
+      assert_enqueued_with(job: GenerateBriefJob) do
+        post "/analysis_requests/#{analysis_request.id}/retry"
+      end
+
+      perform_enqueued_jobs
+
+      assert_equal "completed", analysis_request.reload.lifecycle_state
+      assert_equal 4, adapter.attempts
+    end
+  end
+
   private
 
   def unlock_workspace
@@ -91,9 +151,20 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
   class FakeGeminiAdapter
     attr_reader :received_arguments, :lifecycle_states_seen
 
+    def initialize(*outcomes)
+      @outcomes = outcomes.presence || [ :success ]
+      @attempts = 0
+    end
+
+    attr_reader :attempts
+
     def analyze(source_url:, output_language:)
+      @attempts += 1
       @received_arguments = [ source_url, output_language ]
       @lifecycle_states_seen = [ AnalysisRequest.find_by!(source_url:).lifecycle_state ]
+
+      outcome = @outcomes.shift || :success
+      raise outcome if outcome.is_a?(Exception)
 
       GeneratedBrief.new(
         source_url: source_url,

@@ -14,6 +14,17 @@ class AnalysisRequestsController < ApplicationController
     end
   end
 
+  def retry
+    analysis_request = AnalysisRequest.find(params[:id])
+
+    if analysis_request.retry_after_recoverable_failure!
+      GenerateBriefJob.perform_later(analysis_request.id)
+      redirect_to workspace_path, notice: "Analysis request queued for another attempt."
+    else
+      redirect_to workspace_path, alert: "This analysis request cannot be retried."
+    end
+  end
+
   private
 
   def analysis_request_params
