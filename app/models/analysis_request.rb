@@ -1,4 +1,5 @@
 class AnalysisRequest < ApplicationRecord
+  has_one :brief, dependent: :destroy
   LIFECYCLE_STATES = %w[queued processing completed failed].freeze
   YOUTUBE_HOSTS = %w[youtube.com www.youtube.com m.youtube.com youtu.be].freeze
 

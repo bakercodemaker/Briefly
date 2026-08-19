@@ -27,10 +27,19 @@
         <% @analysis_requests.each do |analysis_request| %>
           <li class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
             <a href="<%= analysis_request.source_url %>" class="min-w-0 truncate text-sm text-slate-700 underline"><%= analysis_request.source_url %></a>
-            <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800"><%= analysis_request.lifecycle_state %></span>
+            <div class="flex shrink-0 items-center gap-3">
+              <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800"><%= analysis_request.lifecycle_state %></span>
+              <% if analysis_request.brief %>
+                <%= link_to "Open Brief", workspace_path(brief_id: analysis_request.brief), class: "text-sm font-semibold text-emerald-700 underline" %>
+              <% end %>
+            </div>
           </li>
         <% end %>
       </ul>
     </section>
+  <% end %>
+
+  <% if @open_brief %>
+    <%= render "briefs/brief", brief: @open_brief %>
   <% end %>
 </main>

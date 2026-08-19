@@ -31,7 +31,7 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
   test "an owner receives validation feedback for malformed and unsupported source URLs" do
     unlock_workspace
 
-    ["not a url", "https://vimeo.com/123456", "https://www.youtube.com/watch?v="].each do |source_url|
+    [ "not a url", "https://vimeo.com/123456", "https://www.youtube.com/watch?v=" ].each do |source_url|
       assert_no_difference("AnalysisRequest.count") do
         post "/analysis_requests", params: { analysis_request: { source_url: source_url } }
       end

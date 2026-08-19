@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
   get "workspace", to: "workspace#show"
   resources :analysis_requests, only: :create
+  resources :briefs, only: :show
   get "demo", to: "demo_library#show"
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
