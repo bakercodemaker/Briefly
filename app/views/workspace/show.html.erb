@@ -7,7 +7,30 @@
     <%= button_to "Lock workspace", access_path, method: :delete, class: "rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800" %>
   </div>
   <section class="mt-10 rounded-3xl bg-slate-950 p-8 text-white">
-    <h2 class="text-2xl font-semibold">Your first Brief starts with a source.</h2>
-    <p class="mt-3 max-w-xl text-slate-300">Analysis Requests will appear here once URL submission is added in the next slice.</p>
+    <h2 class="text-2xl font-semibold">Your next Brief starts with a source.</h2>
+    <p class="mt-3 max-w-xl text-slate-300">Paste one public YouTube video URL. We will queue it for a Polish-language Brief.</p>
+
+    <%= form_with model: @analysis_request, class: "mt-6 flex flex-col gap-3 sm:flex-row" do |form| %>
+      <%= form.url_field :source_url, placeholder: "https://www.youtube.com/watch?v=…", required: true, class: "min-w-0 flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-400", aria: { describedby: "source-url-help" } %>
+      <%= form.submit "Queue analysis", class: "rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950" %>
+    <% end %>
+    <p id="source-url-help" class="mt-3 text-sm text-slate-400">Only public YouTube video URLs are supported.</p>
+    <% if @analysis_request.errors[:source_url].any? %>
+      <p class="mt-3 text-sm font-medium text-rose-300"><%= @analysis_request.errors[:source_url].first %></p>
+    <% end %>
   </section>
+
+  <% if @analysis_requests.any? %>
+    <section class="mt-8">
+      <h2 class="text-xl font-semibold text-slate-950">Analysis Requests</h2>
+      <ul class="mt-4 space-y-3">
+        <% @analysis_requests.each do |analysis_request| %>
+          <li class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+            <a href="<%= analysis_request.source_url %>" class="min-w-0 truncate text-sm text-slate-700 underline"><%= analysis_request.source_url %></a>
+            <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800"><%= analysis_request.lifecycle_state %></span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
 </main>
