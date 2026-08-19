@@ -3,6 +3,7 @@ class Brief < ApplicationRecord
 
   validates :source_url, :source_title, :source_channel, :published_on, :duration_seconds, :output_language, :content_markdown, presence: true
   validates :structured_content, :key_conclusions, presence: true
+  validates :key_conclusions, length: { in: 5..10 }
   before_update :prevent_changes
 
   private

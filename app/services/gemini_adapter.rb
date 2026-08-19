@@ -67,7 +67,7 @@ class GeminiAdapter
           },
           required: [ "sections" ]
         },
-        key_conclusions: { type: "array", items: { type: "string" } }
+        key_conclusions: { type: "array", minItems: 5, maxItems: 10, items: { type: "string" } }
       },
       required: %w[source_title source_channel published_on duration_seconds content_markdown structured_content key_conclusions]
     }

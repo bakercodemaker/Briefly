@@ -15,10 +15,11 @@ Plan only; implementation starts after this map is clear. Use `grilling` and `do
 - [Assess Dockerized local development](issues/06-assess-dockerized-local-development.md) — Docker-first development needs no host Ruby/Rails and should use modern Compose conventions; deploy source directly to the free host rather than treating Docker as a hosting requirement.
 - [Prototype on-demand Brief flow](issues/03-prototype-on-demand-brief-flow.md) — Use the workbench layout: persistent URL submission and compact saved library frame the currently open Brief, which remains the dominant reading surface.
 - [Define MVP product and data contract](issues/04-define-mvp-product-and-data-contract.md) — Save immutable, detailed source-faithful Briefs from one public YouTube URL with explicit lifecycle and retry states; organise completed Briefs by channel and show a persistent source-and-safety notice.
+- [Decide architecture and publish plan](issues/05-decide-architecture-and-publish-plan.md) — Ship one password-gated Rails workbench with an in-process database-backed queue, public seeded Demo Library, vertical-slice build order, and focused release evidence.
 
 ## Not yet specified
 
-- The minimum production checks, demo content, README, screenshots, and walkthrough that make the project publishable.
+<!-- The route to the destination is clear. -->
 
 ## Out of scope
 

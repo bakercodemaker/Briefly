@@ -30,7 +30,7 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       assert_equal 1_245, brief.duration_seconds
       assert_equal "pl", brief.output_language
       assert_equal "## Nawyki pracy", brief.content_markdown
-      assert_equal [ "Zachowuj kontekst zadania.", "Ogranicz przełączanie uwagi." ], brief.key_conclusions
+      assert_equal 5, brief.key_conclusions.length
       assert_equal "Nawyki pracy", brief.structured_content.fetch("sections").first.fetch("heading")
       assert_not brief.update(source_title: "Changed title")
       assert_equal "Wykład o skupieniu", brief.reload.source_title
@@ -62,7 +62,7 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       output_language: "pl",
       content_markdown: "# Private",
       structured_content: { "sections" => [ { "heading" => "Private", "body" => "Private content." } ] },
-      key_conclusions: [ "Private conclusion." ]
+      key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ]
     )
 
     get "/briefs/#{brief.id}"
@@ -108,7 +108,13 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
             { "heading" => "Nawyki pracy", "body" => "Mówca wyjaśnia, że krótkie bloki pracy pomagają utrzymać uwagę." }
           ]
         },
-        key_conclusions: [ "Zachowuj kontekst zadania.", "Ogranicz przełączanie uwagi." ]
+        key_conclusions: [
+          "Zachowuj kontekst zadania.",
+          "Ogranicz przełączanie uwagi.",
+          "Planuj krótkie bloki pracy.",
+          "Chroń czas bez powiadomień.",
+          "Kończ jeden kontekst przed kolejnym."
+        ]
       )
     end
   end

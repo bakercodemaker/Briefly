@@ -9,6 +9,7 @@
 !/log/.keep
 !/tmp/.keep
 /node_modules
+/.scratch/learn-briefly/
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
