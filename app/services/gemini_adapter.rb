@@ -16,7 +16,7 @@ class GeminiAdapter
     response_body = response_body_from(response)
     raise provider_error(response, response_body) unless response.is_a?(Net::HTTPSuccess)
 
-    output_text = response_body["output_text"]
+    output_text = output_text_from(response_body)
     raise RetryableError, UNREADABLE_RESPONSE_MESSAGE unless output_text.is_a?(String)
 
     generated_brief_from(JSON.parse(output_text), source_url:, output_language:)
@@ -35,6 +35,19 @@ class GeminiAdapter
     response_body
   end
 
+  def output_text_from(response_body)
+    return response_body["output_text"] if response_body["output_text"].is_a?(String)
+
+    steps = response_body["steps"]
+    return unless steps.is_a?(Array)
+
+    model_output = steps.reverse.find { |step| step.is_a?(Hash) && step["type"] == "model_output" }
+    content = model_output&.fetch("content", nil)
+    return unless content.is_a?(Array)
+
+    content.filter_map { |part| part["text"] if part.is_a?(Hash) && part["type"] == "text" }.join.presence
+  end
+
   def post_interaction(source_url:, output_language:)
     request = Net::HTTP::Post.new(INTERACTIONS_URI)
     request["x-goog-api-key"] = ENV.fetch("GEMINI_API_KEY")
@@ -46,7 +59,7 @@ class GeminiAdapter
         { type: "text", text: prompt(output_language) },
         { type: "video", uri: source_url }
       ],
-      response_format: { type: "text", mime_type: "application/json", schema: response_schema }
+      response_format: [ { type: "text", mime_type: "application/json", schema: response_schema } ]
     )
 
     Rails.logger.info("gemini.request model=#{model}")

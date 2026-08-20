@@ -28,6 +28,35 @@ class GeminiAdapterTest < ActiveSupport::TestCase
     assert_includes prompt, "uncertainty"
   end
 
+  test "uses the Interactions API array response format" do
+    adapter = GeminiAdapter.new
+    request = nil
+
+    with_gemini_api_key do
+      request = capture_http_request(successful_response) do
+        adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+      end
+    end
+
+    response_format = JSON.parse(request.body).fetch("response_format")
+    assert_kind_of Array, response_format
+    assert_equal "application/json", response_format.first.fetch("mime_type")
+  end
+
+  test "reads generated JSON from the final model output step" do
+    adapter = GeminiAdapter.new
+    response = successful_steps_response
+
+    brief = nil
+    with_gemini_api_key do
+      capture_http_request(response) do
+        brief = adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+      end
+    end
+
+    assert_equal "Source title", brief.source_title
+  end
+
   test "treats an HTTP timeout as a retryable provider failure" do
     response = Response.new('{"error":{"message":"Gemini timed out."}}', "408")
     adapter = TimeoutGeminiAdapter.new(response)
@@ -144,6 +173,26 @@ class GeminiAdapterTest < ActiveSupport::TestCase
       key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ]
     }.merge(overrides)
     SuccessfulResponse.new({ output_text: generated_brief.to_json }.to_json)
+  end
+
+  def successful_steps_response
+    generated_brief = {
+      source_title: "Source title",
+      source_channel: "Source channel",
+      published_on: "2026-08-20",
+      duration_seconds: 60,
+      content_markdown: "# Brief",
+      structured_content: { sections: [ { heading: "Details", body: "Source details." } ] },
+      key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ]
+    }
+    SuccessfulResponse.new(
+      {
+        steps: [
+          { type: "user_input", content: [ { type: "text", text: "Ignore this." } ] },
+          { type: "model_output", content: [ { type: "text", text: generated_brief.to_json } ] }
+        ]
+      }.to_json
+    )
   end
 
   def with_gemini_api_key

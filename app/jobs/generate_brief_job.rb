@@ -12,7 +12,7 @@ class GenerateBriefJob < ApplicationJob
 
     AnalysisRequest.transaction do
       analysis_request.create_brief!(generated_brief.to_h.merge(source_url: analysis_request.source_url, output_language: "pl"))
-      analysis_request.update!(lifecycle_state: "completed")
+      analysis_request.update!(lifecycle_state: "completed", recoverable_failure: false, failure_message: nil)
     end
     Rails.logger.info("brief_generation.completed analysis_request_id=#{analysis_request.id}")
   rescue GeminiAdapter::RetryableError => error
@@ -35,7 +35,7 @@ class GenerateBriefJob < ApplicationJob
   end
 
   def gemini_adapter
-    Rails.configuration.x.gemini_adapter ||= GeminiAdapter.new
+    Rails.configuration.x.gemini_adapter || GeminiAdapter.new
   end
 
   def handle_retryable_failure(analysis_request_id, error)

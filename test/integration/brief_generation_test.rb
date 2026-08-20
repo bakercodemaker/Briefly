@@ -160,7 +160,28 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       perform_enqueued_jobs
 
       assert_equal "completed", analysis_request.reload.lifecycle_state
+      assert_not analysis_request.recoverable_failure?
+      assert_nil analysis_request.failure_message
       assert_equal 4, adapter.attempts
+    end
+  end
+
+  test "a successful automatic retry clears its earlier failure state" do
+    adapter = FakeGeminiAdapter.new(
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
+      :success
+    )
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      2.times { perform_enqueued_jobs }
+
+      analysis_request = AnalysisRequest.last
+      assert_equal "completed", analysis_request.lifecycle_state
+      assert_not analysis_request.recoverable_failure?
+      assert_nil analysis_request.failure_message
     end
   end
 
