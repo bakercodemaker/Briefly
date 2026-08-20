@@ -4,6 +4,8 @@ Briefly is a private Personal Workspace for creating detailed, source-faithful B
 
 ## Local development
 
+For the complete setup, testing, logging, debugging, and container lifecycle guide, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
 Docker Desktop is the only required host dependency.
 
 ```sh
