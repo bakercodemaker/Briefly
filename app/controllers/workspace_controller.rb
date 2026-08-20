@@ -12,5 +12,6 @@ class WorkspaceController < ApplicationController
 
     @analysis_request = AnalysisRequest.new
     @analysis_requests = AnalysisRequest.order(created_at: :desc)
+    @briefs_by_channel = Brief.completed_by_channel
   end
 end

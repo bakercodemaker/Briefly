@@ -130,6 +130,88 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "an owner browses completed Brief previews by channel and opens the selected Brief" do
+    unlock_workspace
+
+    focus_brief = create_completed_brief(
+      source_title: "Focus habits",
+      source_channel: "Learning Lab",
+      created_at: 2.days.ago
+    )
+    latest_brief = create_completed_brief(
+      source_title: "Planning a week",
+      source_channel: "Learning Lab",
+      created_at: 1.day.ago
+    )
+    create_completed_brief(
+      source_title: "Market notes",
+      source_channel: "Investor Desk",
+      created_at: 3.days.ago
+    )
+    AnalysisRequest.create!(source_url: "https://www.youtube.com/watch?v=queuedVideo").tap do |request|
+      request.update!(lifecycle_state: "queued")
+    end
+
+    get "/workspace"
+
+    assert_response :success
+    assert_select "section", /Personal Brief Library/ do
+      assert_select "h3", "Learning Lab"
+      assert_select "a[href=?]", workspace_path(brief_id: latest_brief.id) do
+        assert_select "p", "Planning a week"
+      end
+      assert_select "a[href=?]", workspace_path(brief_id: focus_brief.id) do
+        assert_select "p", "Focus habits"
+      end
+      assert_select "a", text: /Market notes/
+      assert_select "a", text: "queuedVideo", count: 0
+    end
+    assert_operator response.body.index("Planning a week"), :<, response.body.index("Focus habits")
+
+    get "/workspace", params: { brief_id: focus_brief.id }
+
+    assert_response :success
+    assert_select "h1", "Focus habits"
+    assert_select "p", /generated from the linked source/i
+  end
+
+  test "an owner can delete a Brief without an edit route" do
+    brief = create_completed_brief(
+      source_title: "Remove me",
+      source_channel: "Learning Lab",
+      created_at: 1.day.ago
+    )
+
+    get "/briefs/#{brief.id}/edit"
+
+    assert_response :not_found
+
+    unlock_workspace
+
+    assert_difference("Brief.count", -1) do
+      delete "/briefs/#{brief.id}"
+    end
+
+    assert_redirected_to "/workspace"
+    follow_redirect!
+    assert_select "p", "Brief deleted. You can create a new Analysis Request whenever you need it."
+    assert_select "a", text: "Remove me", count: 0
+  end
+
+  test "an anonymous visitor cannot delete a personal Brief" do
+    brief = create_completed_brief(
+      source_title: "Private Brief",
+      source_channel: "Learning Lab",
+      created_at: 1.day.ago
+    )
+
+    assert_no_difference("Brief.count") do
+      delete "/briefs/#{brief.id}"
+    end
+
+    assert_redirected_to "/access"
+  end
+
   private
 
   def unlock_workspace
@@ -146,6 +228,26 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Rails.configuration.x.gemini_adapter = previous_adapter
+  end
+
+  def create_completed_brief(source_title:, source_channel:, created_at:)
+    analysis_request = AnalysisRequest.create!(source_url: "https://www.youtube.com/watch?v=#{source_title.parameterize}")
+    analysis_request.update!(lifecycle_state: "completed")
+
+    Brief.create!(
+      analysis_request:,
+      source_url: analysis_request.source_url,
+      source_title:,
+      source_channel:,
+      published_on: Date.new(2026, 8, 1),
+      duration_seconds: 60,
+      output_language: "pl",
+      content_markdown: "# #{source_title}",
+      structured_content: { "sections" => [ { "heading" => "Details", "body" => "Source details." } ] },
+      key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ],
+      created_at:,
+      updated_at: created_at
+    )
   end
 
   class FakeGeminiAdapter

@@ -10,6 +10,7 @@ class AnalysisRequestsController < ApplicationController
       redirect_to workspace_path, notice: "Analysis request queued."
     else
       @analysis_requests = AnalysisRequest.order(created_at: :desc)
+      @briefs_by_channel = Brief.completed_by_channel
       render "workspace/show", status: :unprocessable_entity
     end
   end

@@ -9,7 +9,7 @@ Rails.application.routes.draw do
   resources :analysis_requests, only: :create do
     post :retry, on: :member
   end
-  resources :briefs, only: :show
+  resources :briefs, only: [ :show, :destroy ]
   get "demo", to: "demo_library#show"
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
