@@ -39,6 +39,86 @@ class GeminiAdapterTest < ActiveSupport::TestCase
     assert_equal "Gemini timed out.", error.message
   end
 
+  test "treats an incomplete successful response as a retryable provider failure" do
+    adapter = GeminiAdapter.new
+    response = successful_response(source_title: "")
+
+    error = with_gemini_api_key do
+      assert_raises(GeminiAdapter::RetryableError) do
+        capture_http_request(response) do
+          adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+        end
+      end
+    end
+
+    assert_equal "Gemini returned an invalid Brief. Please try again.", error.message
+  end
+
+  test "treats malformed nested response content as a retryable provider failure" do
+    adapter = GeminiAdapter.new
+    response = successful_response(structured_content: nil)
+
+    error = with_gemini_api_key do
+      assert_raises(GeminiAdapter::RetryableError) do
+        capture_http_request(response) do
+          adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+        end
+      end
+    end
+
+    assert_equal "Gemini returned an invalid Brief. Please try again.", error.message
+  end
+
+  test "treats a non-object successful response envelope as a retryable provider failure" do
+    adapter = GeminiAdapter.new
+    response = SuccessfulResponse.new("[]")
+
+    error = with_gemini_api_key do
+      assert_raises(GeminiAdapter::RetryableError) do
+        capture_http_request(response) do
+          adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+        end
+      end
+    end
+
+    assert_equal "Gemini returned an unreadable Brief response.", error.message
+  end
+
+  test "treats a non-object error response envelope as a retryable provider failure" do
+    adapter = TimeoutGeminiAdapter.new(Response.new("[]", "500"))
+
+    error = assert_raises(GeminiAdapter::RetryableError) do
+      adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+    end
+
+    assert_equal "Gemini returned an unreadable Brief response.", error.message
+  end
+
+  test "treats malformed error details as a retryable provider failure" do
+    adapter = TimeoutGeminiAdapter.new(Response.new('{"error":"unavailable"}', "500"))
+
+    error = assert_raises(GeminiAdapter::RetryableError) do
+      adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+    end
+
+    assert_equal "Gemini did not complete the analysis.", error.message
+  end
+
+  test "treats a null output text as a retryable provider failure" do
+    adapter = GeminiAdapter.new
+    response = SuccessfulResponse.new('{"output_text":null}')
+
+    error = with_gemini_api_key do
+      assert_raises(GeminiAdapter::RetryableError) do
+        capture_http_request(response) do
+          adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+        end
+      end
+    end
+
+    assert_equal "Gemini returned an unreadable Brief response.", error.message
+  end
+
   class TimeoutGeminiAdapter < GeminiAdapter
     def initialize(response)
       @response = response
@@ -53,7 +133,7 @@ class GeminiAdapterTest < ActiveSupport::TestCase
 
   private
 
-  def successful_response
+  def successful_response(**overrides)
     generated_brief = {
       source_title: "Source title",
       source_channel: "Source channel",
@@ -62,7 +142,7 @@ class GeminiAdapterTest < ActiveSupport::TestCase
       content_markdown: "# Brief",
       structured_content: { sections: [ { heading: "Details", body: "Source details." } ] },
       key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ]
-    }
+    }.merge(overrides)
     SuccessfulResponse.new({ output_text: generated_brief.to_json }.to_json)
   end
 

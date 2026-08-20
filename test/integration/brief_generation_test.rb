@@ -95,6 +95,40 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "an invalid generated Brief becomes a visible recoverable failure instead of remaining processing" do
+    invalid_brief = GeneratedBrief.new(
+      source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      source_title: nil,
+      source_channel: nil,
+      published_on: nil,
+      duration_seconds: nil,
+      output_language: "pl",
+      content_markdown: nil,
+      structured_content: nil,
+      key_conclusions: nil
+    )
+    adapter = FakeGeminiAdapter.new(invalid_brief, invalid_brief, invalid_brief)
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      3.times { perform_enqueued_jobs }
+
+      analysis_request = AnalysisRequest.last
+      assert_equal "failed", analysis_request.lifecycle_state
+      assert analysis_request.recoverable_failure?
+      assert_equal 2, analysis_request.automatic_retry_count
+      assert_match(/invalid Brief/i, analysis_request.failure_message)
+
+      get "/workspace"
+
+      assert_select "li", /failed/i
+      assert_select "p", /invalid Brief/i
+      assert_select "form[action=?]", "/analysis_requests/#{analysis_request.id}/retry"
+    end
+  end
+
   test "an owner can retry after bounded automatic recovery is exhausted" do
     adapter = FakeGeminiAdapter.new(
       GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
@@ -239,6 +273,7 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
 
       outcome = @outcomes.shift || :success
       raise outcome if outcome.is_a?(Exception)
+      return outcome if outcome.is_a?(GeneratedBrief)
 
       GeneratedBrief.new(
         source_url: source_url,
