@@ -11,6 +11,9 @@ class GenerateBriefJob < ApplicationJob
     end
 
     AnalysisRequest.transaction do
+      analysis_request.lock!
+      return if analysis_request.archived?
+
       analysis_request.create_brief!(generated_brief.to_h.merge(source_url: analysis_request.source_url, output_language: "pl"))
       analysis_request.update!(lifecycle_state: "completed", recoverable_failure: false, failure_message: nil)
     end
@@ -31,7 +34,7 @@ class GenerateBriefJob < ApplicationJob
   private
 
   def claim_queued_request(analysis_request_id)
-    AnalysisRequest.where(id: analysis_request_id, lifecycle_state: "queued").update_all(lifecycle_state: "processing", updated_at: Time.current) == 1
+    AnalysisRequest.active.where(id: analysis_request_id, lifecycle_state: "queued").update_all(lifecycle_state: "processing", updated_at: Time.current) == 1
   end
 
   def gemini_adapter
@@ -42,22 +45,30 @@ class GenerateBriefJob < ApplicationJob
     analysis_request = AnalysisRequest.find(analysis_request_id)
     Rails.logger.warn("brief_generation.retryable_failure analysis_request_id=#{analysis_request.id} retry_count=#{analysis_request.automatic_retry_count} error_class=#{error.class}")
 
-    if analysis_request.automatic_retry_count < MAX_AUTOMATIC_RETRIES
-      analysis_request.update!(
-        lifecycle_state: "queued",
-        automatic_retry_count: analysis_request.automatic_retry_count + 1,
-        recoverable_failure: true,
-        failure_message: error.message
-      )
-      self.class.perform_later(analysis_request.id)
-    else
-      fail_request(analysis_request.id, error.message, recoverable: true)
+    retry_requested = analysis_request.with_lock do
+      next false if analysis_request.archived?
+
+      if analysis_request.automatic_retry_count < MAX_AUTOMATIC_RETRIES
+        analysis_request.update!(
+          lifecycle_state: "queued",
+          automatic_retry_count: analysis_request.automatic_retry_count + 1,
+          recoverable_failure: true,
+          failure_message: error.message
+        )
+        true
+      else
+        false
+      end
     end
+
+    return self.class.perform_later(analysis_request.id) if retry_requested
+
+    fail_request(analysis_request.id, error.message, recoverable: true) unless analysis_request.archived?
   end
 
   def fail_request(analysis_request_id, message, recoverable:)
     Rails.logger.warn("brief_generation.failed analysis_request_id=#{analysis_request_id} recoverable=#{recoverable}")
-    AnalysisRequest.where(id: analysis_request_id, lifecycle_state: "processing").update_all(
+    AnalysisRequest.active.where(id: analysis_request_id, lifecycle_state: "processing").update_all(
       lifecycle_state: "failed",
       recoverable_failure: recoverable,
       failure_message: message,

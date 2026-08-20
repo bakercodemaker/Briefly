@@ -1,8 +1,9 @@
 class Brief < ApplicationRecord
   belongs_to :analysis_request
 
-  scope :completed, -> { joins(:analysis_request).where(analysis_requests: { lifecycle_state: "completed" }) }
+  scope :completed, -> { joins(:analysis_request).where(analysis_requests: { lifecycle_state: "completed", archived_at: nil }) }
   scope :public_demo, -> { completed.where(publicly_visible: true) }
+  scope :archived, -> { joins(:analysis_request).where.not(analysis_requests: { archived_at: nil }) }
 
   def self.completed_by_channel
     completed.order(created_at: :desc).group_by(&:source_channel)

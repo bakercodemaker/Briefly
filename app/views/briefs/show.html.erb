@@ -2,5 +2,5 @@
   <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Briefly / Personal Workspace</p>
   <a href="<%= workspace_path %>" class="mt-6 inline-block text-sm font-semibold text-emerald-700 underline">Back to workspace</a>
 
-  <%= render "briefs/brief", brief: @brief %>
+  <%= render "briefs/brief", brief: @brief, show_archive: !@brief.analysis_request.archived? %>
 </main>

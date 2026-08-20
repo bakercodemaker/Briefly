@@ -8,8 +8,14 @@ Rails.application.routes.draw do
   get "workspace", to: "workspace#show"
   resources :analysis_requests, only: :create do
     post :retry, on: :member
+    patch :archive, on: :member
   end
-  resources :briefs, only: [ :show, :destroy ]
+  resources :briefs, only: :show do
+    collection do
+      get :archived
+    end
+    patch :archive, on: :member
+  end
   get "demo", to: "demo_library#show"
   get "demo/briefs/:id", to: "demo_library#brief", as: :demo_brief
 

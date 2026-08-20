@@ -35,12 +35,20 @@ A future, source-bounded AI conversation about one open Brief. It may produce ex
 _Avoid_: MVP chat, untraceable extracted data, advice beyond the source material
 
 **Immutable generated Brief**:
-A completed Brief is retained exactly as generated from its source and selected output language. In the MVP, the owner may delete it and later request regeneration, but cannot edit its contents.
-_Avoid_: Mixing owner-authored notes into source-faithful generated output
+A completed Brief is retained exactly as generated from its source and selected output language. The owner may archive it or later request regeneration, but cannot edit its contents.
+_Avoid_: Mixing owner-authored notes into source-faithful generated output, permanent deletion as the normal removal flow
 
 **Analysis request**:
-The owner’s request to create one Brief from one pasted public YouTube URL. It has a visible lifecycle of queued, processing, completed, or failed.
+The owner’s request to create one Brief from one pasted public YouTube URL. It has a visible lifecycle of queued, processing, completed, failed, or cancelled.
 _Avoid_: A synchronous page request, a hidden provider call
+
+**Active analysis history**:
+The owner’s recent, non-archived Analysis Requests. It opens in a compact three-item view, can expand to a page of ten requests, and pages through older requests.
+_Avoid_: An unbounded visible activity feed, the archive
+
+**Archived Brief**:
+A completed Brief preserved outside the active personal library after it or its Analysis Request is archived. Archiving either side applies to both: the request leaves active history and the Brief remains available through the archived-briefs area.
+_Avoid_: A deleted Brief, a public Demo Library Brief, one-sided removal
 
 **Recoverable failure**:
 A temporary provider or quota failure that receives a small bounded set of automatic retries before the owner can choose an explicit manual retry. Invalid or inaccessible source URLs are not recoverable failures.

@@ -20,13 +20,13 @@
     <% end %>
   </section>
 
-  <% if @analysis_requests.any? %>
+  <% if @analysis_request_count.positive? %>
     <section class="mt-8">
       <h2 class="text-xl font-semibold text-slate-950">Analysis Requests</h2>
       <ul class="mt-4 space-y-3">
-        <% @analysis_requests.each do |analysis_request| %>
+        <% @display_analysis_requests.each do |analysis_request| %>
           <li class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-            <a href="<%= analysis_request.source_url %>" class="min-w-0 truncate text-sm text-slate-700 underline"><%= analysis_request.source_url %></a>
+            <a href="<%= analysis_request.source_url %>" class="min-w-0 truncate text-sm text-slate-700 underline"><%= analysis_request.display_title %></a>
             <div class="flex shrink-0 items-center gap-3">
               <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800"><%= analysis_request.lifecycle_state %></span>
               <% if analysis_request.brief %>
@@ -35,6 +35,7 @@
               <% if analysis_request.recoverable_failure? %>
                 <%= button_to "Retry", retry_analysis_request_path(analysis_request), class: "text-sm font-semibold text-emerald-700 underline" %>
               <% end %>
+              <%= button_to "Archive", archive_analysis_request_path(analysis_request), method: :patch, class: "text-sm font-semibold text-rose-700 underline", form: { data: { turbo_confirm: "Archive this Analysis Request? Its Brief will be moved to Archived Briefs. Any queued or processing analysis will be cancelled." } } %>
             </div>
             <% if analysis_request.failure_message.present? %>
               <p class="basis-full text-sm text-rose-700"><%= analysis_request.failure_message %></p>
@@ -45,6 +46,19 @@
           </li>
         <% end %>
       </ul>
+      <% if !@analysis_requests_expanded && @analysis_request_count > 3 %>
+        <%= link_to "Show #{[ @analysis_request_count - 3, 7 ].min} more", workspace_path(show_all_requests: 1), class: "mt-4 inline-block text-sm font-semibold text-emerald-700 underline" %>
+      <% elsif @analysis_requests_expanded && @analysis_requests_total_pages > 1 %>
+        <nav class="mt-4 flex items-center gap-3" aria-label="Analysis Request pagination">
+          <% if @analysis_requests_page > 1 %>
+            <%= link_to "Newer", workspace_path(show_all_requests: 1, requests_page: @analysis_requests_page - 1), class: "text-sm font-semibold text-emerald-700 underline" %>
+          <% end %>
+          <span class="text-sm text-slate-600">Page <%= @analysis_requests_page %> of <%= @analysis_requests_total_pages %></span>
+          <% if @analysis_requests_page < @analysis_requests_total_pages %>
+            <%= link_to "Older", workspace_path(show_all_requests: 1, requests_page: @analysis_requests_page + 1), class: "text-sm font-semibold text-emerald-700 underline" %>
+          <% end %>
+        </nav>
+      <% end %>
     </section>
   <% end %>
 
@@ -72,7 +86,11 @@
     </section>
   <% end %>
 
+  <% if @archived_brief_count.positive? %>
+    <%= link_to "Archived Briefs", archived_briefs_path, class: "mt-5 inline-block text-sm font-semibold text-emerald-700 underline" %>
+  <% end %>
+
   <% if @open_brief %>
-    <%= render "briefs/brief", brief: @open_brief %>
+    <%= render "briefs/brief", brief: @open_brief, show_archive: !@open_brief.analysis_request.archived? %>
   <% end %>
 </main>

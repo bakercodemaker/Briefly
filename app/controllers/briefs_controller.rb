@@ -5,8 +5,12 @@ class BriefsController < ApplicationController
     @brief = Brief.find(params[:id])
   end
 
-  def destroy
-    Brief.find(params[:id]).destroy!
-    redirect_to workspace_path, notice: "Brief deleted. You can create a new Analysis Request whenever you need it."
+  def archive
+    Brief.find(params[:id]).analysis_request.archive!
+    redirect_to workspace_path, notice: "Brief archived."
+  end
+
+  def archived
+    @briefs = Brief.archived.order(created_at: :desc)
   end
 end

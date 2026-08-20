@@ -10,11 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_111000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "analysis_requests", force: :cascade do |t|
+    t.datetime "archived_at"
     t.integer "automatic_retry_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.text "failure_message"
@@ -22,8 +23,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_100000) do
     t.boolean "recoverable_failure", default: false, null: false
     t.string "source_url", null: false
     t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_analysis_requests_on_archived_at"
     t.index ["created_at"], name: "index_analysis_requests_on_created_at"
-    t.check_constraint "lifecycle_state::text = ANY (ARRAY['queued'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'failed'::character varying::text])", name: "analysis_requests_lifecycle_state"
+    t.check_constraint "lifecycle_state::text = ANY (ARRAY['queued'::character varying, 'processing'::character varying, 'completed'::character varying, 'failed'::character varying, 'cancelled'::character varying]::text[])", name: "analysis_requests_lifecycle_state"
   end
 
   create_table "briefs", force: :cascade do |t|

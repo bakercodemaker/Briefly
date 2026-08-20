@@ -60,4 +60,104 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
       assert_select "p", "Enter a public YouTube video URL."
     end
   end
+
+  test "an owner archives a completed request and its Brief from active history" do
+    unlock_workspace
+    analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
+    brief = create_brief_for(analysis_request, source_title: "Archive me")
+    analysis_request.update!(lifecycle_state: "completed")
+
+    patch archive_analysis_request_path(analysis_request)
+
+    assert_redirected_to workspace_path
+    assert analysis_request.reload.archived?
+    assert_equal brief, analysis_request.brief
+
+    follow_redirect!
+    assert_select "a", text: "Archive me", count: 0
+    assert_select "a", "Archived Briefs"
+  end
+
+  test "the workspace keeps request history compact, expands to ten, and paginates older requests" do
+    unlock_workspace
+    11.times do |index|
+      AnalysisRequest.create!(source_url: "https://youtu.be/request#{index}").tap do |analysis_request|
+        analysis_request.update_column(:created_at, index.minutes.ago)
+      end
+    end
+
+    get workspace_path
+
+    assert_select "h2", "Analysis Requests"
+    assert_select "section ul > li", 3
+    assert_select "a", "Show 7 more"
+
+    get workspace_path(show_all_requests: 1)
+
+    assert_select "section ul > li", 10
+    assert_select "nav[aria-label='Analysis Request pagination']", /Page 1 of 2/
+    assert_select "a", "Older"
+
+    get workspace_path(show_all_requests: 1, requests_page: 2)
+
+    assert_select "section ul > li", 1
+    assert_select "nav[aria-label='Analysis Request pagination']", /Page 2 of 2/
+  end
+
+  test "a completed request displays its returned video title instead of its YouTube URL" do
+    unlock_workspace
+    analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
+    create_brief_for(analysis_request, source_title: "Returned Gemini title")
+    analysis_request.update!(lifecycle_state: "completed")
+
+    get workspace_path
+
+    assert_select "a[href=?]", analysis_request.source_url, "Returned Gemini title"
+  end
+
+  test "archiving queued work cancels it before Gemini can claim it" do
+    unlock_workspace
+    analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
+
+    patch archive_analysis_request_path(analysis_request)
+
+    assert_equal "cancelled", analysis_request.reload.lifecycle_state
+    assert analysis_request.archived?
+    assert_no_difference("Brief.count") do
+      GenerateBriefJob.perform_now(analysis_request.id)
+    end
+  end
+
+  test "an owner can browse archived Briefs outside the active library" do
+    unlock_workspace
+    analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
+    create_brief_for(analysis_request, source_title: "Archived title")
+    analysis_request.update!(lifecycle_state: "completed")
+    analysis_request.archive!
+
+    get archived_briefs_path
+
+    assert_response :success
+    assert_select "h1", "Archived Briefs"
+    assert_select "a[href=?]", brief_path(analysis_request.brief) do
+      assert_select "p", "Archived title"
+    end
+  end
+
+  private
+
+  def create_brief_for(analysis_request, source_title:)
+    Brief.create!(
+      analysis_request:,
+      source_url: analysis_request.source_url,
+      source_title:,
+      source_channel: "Channel",
+      published_on: Date.new(2026, 8, 1),
+      duration_seconds: 60,
+      output_language: "pl",
+      content_markdown: "# Brief",
+      structured_content: { "sections" => [ { "heading" => "Heading", "body" => "Body" } ] },
+      key_conclusions: [ "One", "Two", "Three", "Four", "Five" ]
+    )
+  end
 end

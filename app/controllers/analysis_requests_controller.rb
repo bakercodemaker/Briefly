@@ -10,7 +10,13 @@ class AnalysisRequestsController < ApplicationController
       redirect_to workspace_path, notice: "Analysis request queued."
     else
       @analysis_requests = AnalysisRequest.order(created_at: :desc)
+      @analysis_request_count = @analysis_requests.count
+      @analysis_requests_expanded = false
+      @analysis_requests_page = 1
+      @analysis_requests_total_pages = (@analysis_request_count / 10.0).ceil
+      @display_analysis_requests = @analysis_requests.limit(3)
       @briefs_by_channel = Brief.completed_by_channel
+      @archived_brief_count = Brief.archived.count
       render "workspace/show", status: :unprocessable_entity
     end
   end
@@ -24,6 +30,13 @@ class AnalysisRequestsController < ApplicationController
     else
       redirect_to workspace_path, alert: "This analysis request cannot be retried."
     end
+  end
+
+  def archive
+    analysis_request = AnalysisRequest.find(params[:id])
+    analysis_request.archive!
+
+    redirect_to workspace_path, notice: "Analysis request archived."
   end
 
   private

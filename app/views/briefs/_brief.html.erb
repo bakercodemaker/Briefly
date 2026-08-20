@@ -2,8 +2,8 @@
   <h1 class="text-4xl font-semibold tracking-tight text-slate-950"><%= brief.source_title %></h1>
   <p class="mt-3 text-slate-600"><%= brief.source_channel %> · <%= brief.published_on %> · <%= brief.duration_seconds / 60 %> min</p>
   <a href="<%= brief.source_url %>" class="mt-3 inline-block text-sm text-emerald-700 underline">Watch the original YouTube video</a>
-  <% if local_assigns.fetch(:show_delete, true) %>
-    <%= button_to "Delete Brief", brief_path(brief), method: :delete, class: "mt-3 block text-sm font-semibold text-rose-700 underline", form: { data: { turbo_confirm: "Delete this generated Brief? This cannot be undone." } } %>
+  <% if local_assigns.fetch(:show_archive, true) %>
+    <%= button_to "Archive Brief", archive_brief_path(brief), method: :patch, class: "mt-3 block text-sm font-semibold text-rose-700 underline", form: { data: { turbo_confirm: "Archive this Brief? Its Analysis Request will be removed from active history, and the Brief will remain available in Archived Briefs." } } %>
   <% end %>
 
   <section class="mt-10">

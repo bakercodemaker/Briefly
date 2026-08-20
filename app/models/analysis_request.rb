@@ -1,11 +1,35 @@
 class AnalysisRequest < ApplicationRecord
   has_one :brief, dependent: :destroy
-  LIFECYCLE_STATES = %w[queued processing completed failed].freeze
+  LIFECYCLE_STATES = %w[queued processing completed failed cancelled].freeze
   YOUTUBE_HOSTS = %w[youtube.com www.youtube.com m.youtube.com youtu.be].freeze
 
   validates :source_url, presence: true
   validates :lifecycle_state, inclusion: { in: LIFECYCLE_STATES }
   validate :source_url_is_a_public_youtube_video
+
+  scope :active, -> { where(archived_at: nil) }
+  scope :newest_first, -> { order(created_at: :desc) }
+
+  def archived?
+    archived_at.present?
+  end
+
+  def display_title
+    brief&.source_title || source_url
+  end
+
+  def archive!
+    with_lock do
+      return if archived?
+
+      update!(
+        archived_at: Time.current,
+        lifecycle_state: cancellable? ? "cancelled" : lifecycle_state,
+        recoverable_failure: false,
+        failure_message: nil
+      )
+    end
+  end
 
   def recoverable_failure?
     failed? && recoverable_failure
@@ -15,9 +39,13 @@ class AnalysisRequest < ApplicationRecord
     lifecycle_state == "failed"
   end
 
+  def cancellable?
+    lifecycle_state.in?(%w[queued processing])
+  end
+
   def retry_after_recoverable_failure!
     with_lock do
-      return false unless recoverable_failure?
+      return false if archived? || !recoverable_failure?
 
       update!(lifecycle_state: "queued", automatic_retry_count: 0, recoverable_failure: false, failure_message: nil)
       true

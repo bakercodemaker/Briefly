@@ -230,7 +230,7 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     assert_select "p", /generated from the linked source/i
   end
 
-  test "an owner can delete a Brief without an edit route" do
+  test "an owner archives a Brief and removes its Analysis Request from active history" do
     brief = create_completed_brief(
       source_title: "Remove me",
       source_channel: "Learning Lab",
@@ -243,28 +243,44 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
 
     unlock_workspace
 
-    assert_difference("Brief.count", -1) do
-      delete "/briefs/#{brief.id}"
-    end
+    patch archive_brief_path(brief)
 
     assert_redirected_to "/workspace"
+    assert brief.reload.analysis_request.archived?
     follow_redirect!
-    assert_select "p", "Brief deleted. You can create a new Analysis Request whenever you need it."
+    assert_select "p", "Brief archived."
     assert_select "a", text: "Remove me", count: 0
+    assert_select "a", "Archived Briefs"
   end
 
-  test "an anonymous visitor cannot delete a personal Brief" do
+  test "an anonymous visitor cannot archive a personal Brief" do
     brief = create_completed_brief(
       source_title: "Private Brief",
       source_channel: "Learning Lab",
       created_at: 1.day.ago
     )
 
-    assert_no_difference("Brief.count") do
-      delete "/briefs/#{brief.id}"
+    assert_no_changes -> { brief.analysis_request.reload.archived_at } do
+      patch archive_brief_path(brief)
     end
 
     assert_redirected_to "/access"
+  end
+
+  test "a late Gemini failure does not overwrite an archived request's cancellation" do
+    adapter = ArchiveThenFailAdapter.new
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      perform_enqueued_jobs
+
+      analysis_request = AnalysisRequest.last
+      assert analysis_request.archived?
+      assert_equal "cancelled", analysis_request.lifecycle_state
+      assert_equal 1, adapter.attempts
+    end
   end
 
   private
@@ -317,6 +333,20 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
           "Kończ jeden kontekst przed kolejnym."
         ]
       )
+    end
+  end
+
+  class ArchiveThenFailAdapter
+    attr_reader :attempts
+
+    def initialize
+      @attempts = 0
+    end
+
+    def analyze(source_url:, output_language:)
+      @attempts += 1
+      AnalysisRequest.find_by!(source_url:).archive!
+      raise GeminiAdapter::RetryableError, "Gemini quota is temporarily exhausted."
     end
   end
 end
