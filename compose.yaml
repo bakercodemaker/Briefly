@@ -20,6 +20,7 @@ services:
     command: bin/dev
     environment:
       OWNER_PASSWORD: ${OWNER_PASSWORD:-briefly-development}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       RAILS_ENV: development
     ports:
       - "3000:3000"

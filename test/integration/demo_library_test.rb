@@ -59,25 +59,4 @@ class DemoLibraryTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
-
-  private
-
-  def create_completed_brief(source_title:, source_channel:, source_url:, publicly_visible:)
-    analysis_request = AnalysisRequest.create!(source_url:)
-    analysis_request.update!(lifecycle_state: "completed")
-
-    Brief.create!(
-      analysis_request:,
-      source_url:,
-      source_title:,
-      source_channel:,
-      published_on: Date.new(2026, 8, 1),
-      duration_seconds: 600,
-      output_language: "en",
-      content_markdown: "# #{source_title}",
-      structured_content: { "sections" => [ { "heading" => "Details", "body" => "Source details." } ] },
-      key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ],
-      publicly_visible:
-    )
-  end
 end

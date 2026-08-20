@@ -1,6 +1,8 @@
 require "test_helper"
 
 class AnalysisRequestsTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   test "an owner submits a public YouTube URL and sees its queued request" do
     unlock_workspace
 
@@ -28,6 +30,24 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/access"
   end
 
+  test "an anonymous visitor cannot retry a recoverably failed analysis request" do
+    analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
+    analysis_request.update!(
+      lifecycle_state: "failed",
+      recoverable_failure: true,
+      automatic_retry_count: 2,
+      failure_message: "Gemini quota is temporarily exhausted."
+    )
+
+    assert_no_enqueued_jobs do
+      post "/analysis_requests/#{analysis_request.id}/retry"
+    end
+
+    assert_redirected_to "/access"
+    assert_equal "failed", analysis_request.reload.lifecycle_state
+    assert analysis_request.recoverable_failure?
+  end
+
   test "an owner receives validation feedback for malformed and unsupported source URLs" do
     unlock_workspace
 
@@ -39,15 +59,5 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
       assert_response :unprocessable_entity
       assert_select "p", "Enter a public YouTube video URL."
     end
-  end
-
-  private
-
-  def unlock_workspace
-    previous_password = ENV.fetch("OWNER_PASSWORD", nil)
-    ENV["OWNER_PASSWORD"] = "a private test password"
-    post "/access", params: { password: "a private test password" }
-  ensure
-    ENV["OWNER_PASSWORD"] = previous_password
   end
 end

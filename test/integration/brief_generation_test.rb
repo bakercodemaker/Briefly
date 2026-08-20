@@ -214,40 +214,12 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
 
   private
 
-  def unlock_workspace
-    previous_password = ENV.fetch("OWNER_PASSWORD", nil)
-    ENV["OWNER_PASSWORD"] = "a private test password"
-    post "/access", params: { password: "a private test password" }
-  ensure
-    ENV["OWNER_PASSWORD"] = previous_password
-  end
-
   def with_gemini_adapter(adapter)
     previous_adapter = Rails.configuration.x.gemini_adapter
     Rails.configuration.x.gemini_adapter = adapter
     yield
   ensure
     Rails.configuration.x.gemini_adapter = previous_adapter
-  end
-
-  def create_completed_brief(source_title:, source_channel:, created_at:)
-    analysis_request = AnalysisRequest.create!(source_url: "https://www.youtube.com/watch?v=#{source_title.parameterize}")
-    analysis_request.update!(lifecycle_state: "completed")
-
-    Brief.create!(
-      analysis_request:,
-      source_url: analysis_request.source_url,
-      source_title:,
-      source_channel:,
-      published_on: Date.new(2026, 8, 1),
-      duration_seconds: 60,
-      output_language: "pl",
-      content_markdown: "# #{source_title}",
-      structured_content: { "sections" => [ { "heading" => "Details", "body" => "Source details." } ] },
-      key_conclusions: [ "One.", "Two.", "Three.", "Four.", "Five." ],
-      created_at:,
-      updated_at: created_at
-    )
   end
 
   class FakeGeminiAdapter

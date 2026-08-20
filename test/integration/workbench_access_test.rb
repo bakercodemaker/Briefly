@@ -42,14 +42,4 @@ class WorkbenchAccessTest < ActionDispatch::IntegrationTest
     assert_select "h1", "A public window into the finished reading experience."
     assert_select "form", count: 0
   end
-
-  private
-
-  def with_owner_password(password)
-    previous_password = ENV.fetch("OWNER_PASSWORD", nil)
-    ENV["OWNER_PASSWORD"] = password
-    yield
-  ensure
-    ENV["OWNER_PASSWORD"] = previous_password
-  end
 end

@@ -50,7 +50,7 @@ class GeminiAdapter
   def prompt(output_language)
     <<~PROMPT
       Create a detailed, source-faithful Brief in #{output_language}. Use only the supplied public YouTube video.
-      Preserve concrete claims, figures, names, caveats, and reasoning. Do not add fact checking, outside context, or advice.
+      Preserve concrete claims, figures, names, caveats, attribution, uncertainty, and reasoning. Do not add fact checking, outside context, or advice.
       Return five to ten concise key conclusions and thematic sections with detailed prose.
     PROMPT
   end
