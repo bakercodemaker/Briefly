@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   end
   resources :briefs, only: [ :show, :destroy ]
   get "demo", to: "demo_library#show"
+  get "demo/briefs/:id", to: "demo_library#brief", as: :demo_brief
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

@@ -1,0 +1,5 @@
+<main class="mx-auto min-h-screen max-w-4xl px-6 py-16 sm:px-10">
+  <%= link_to "← Demo Library", demo_path, class: "text-sm font-semibold text-emerald-700 underline" %>
+  <p class="mt-10 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Generated Brief / Public Demo</p>
+  <%= render "briefs/brief", brief: @brief, show_delete: false %>
+</main>

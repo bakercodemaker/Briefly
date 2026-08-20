@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_19_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -33,6 +33,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_140000) do
     t.integer "duration_seconds", null: false
     t.jsonb "key_conclusions", null: false
     t.string "output_language", null: false
+    t.boolean "publicly_visible", default: false, null: false
     t.date "published_on", null: false
     t.string "source_channel", null: false
     t.string "source_title", null: false
@@ -40,6 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_19_140000) do
     t.jsonb "structured_content", null: false
     t.datetime "updated_at", null: false
     t.index ["analysis_request_id"], name: "index_briefs_on_analysis_request_id", unique: true
+    t.index ["publicly_visible"], name: "index_briefs_on_publicly_visible"
   end
 
   add_foreign_key "briefs", "analysis_requests"

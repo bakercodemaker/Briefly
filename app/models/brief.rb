@@ -2,6 +2,7 @@ class Brief < ApplicationRecord
   belongs_to :analysis_request
 
   scope :completed, -> { joins(:analysis_request).where(analysis_requests: { lifecycle_state: "completed" }) }
+  scope :public_demo, -> { completed.where(publicly_visible: true) }
 
   def self.completed_by_channel
     completed.order(created_at: :desc).group_by(&:source_channel)
