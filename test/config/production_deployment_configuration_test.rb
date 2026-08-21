@@ -21,6 +21,8 @@ class ProductionDeploymentConfigurationTest < ActiveSupport::TestCase
     assert_match(/yarn install --frozen-lockfile/, build_script)
     assert_match(/bundle exec rails assets:precompile/, build_script)
     assert_match(/bundle exec rails db:prepare/, build_script)
+    assert_match(/SolidQueue::Record\.connection\.data_source_exists\?\("solid_queue_jobs"\)/, build_script)
+    assert_match(/bundle exec rails db:schema:load:queue/, build_script)
   end
 
   test "all Rails production stores share the external database URL" do
