@@ -20,7 +20,7 @@ class ProductionDeploymentConfigurationTest < ActiveSupport::TestCase
     build_script = Rails.root.join("bin/render-build.sh").read
     assert_match(/yarn install --frozen-lockfile/, build_script)
     assert_match(/bundle exec rails assets:precompile/, build_script)
-    assert_match(/bundle exec rails db:migrate/, build_script)
+    assert_match(/bundle exec rails db:prepare/, build_script)
   end
 
   test "all Rails production stores share the external database URL" do
