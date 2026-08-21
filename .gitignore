@@ -11,6 +11,7 @@
 !/tmp/.keep
 /node_modules
 /.scratch/learn-briefly/
+/docs/DEVELOPMENT.md
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
