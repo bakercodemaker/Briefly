@@ -61,6 +61,20 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "an owner cannot exceed the active analysis request limit" do
+    unlock_workspace
+    3.times do |index|
+      AnalysisRequest.create!(source_url: "https://youtu.be/active#{index}")
+    end
+
+    assert_no_difference("AnalysisRequest.count") do
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://youtu.be/oneTooMany" } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "p", "Wait for an active analysis request to finish before queueing another."
+  end
+
   test "an owner archives a completed request and its Brief from active history" do
     unlock_workspace
     analysis_request = AnalysisRequest.create!(source_url: "https://youtu.be/dQw4w9WgXcQ")
@@ -142,6 +156,25 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", brief_path(analysis_request.brief) do
       assert_select "p", "Archived title"
     end
+  end
+
+  test "the Personal Brief Library excludes public Demo Briefs" do
+    unlock_workspace
+    create_completed_brief(
+      source_title: "Personal Brief",
+      source_channel: "Personal Research",
+      publicly_visible: false
+    )
+    create_completed_brief(
+      source_title: "Demo Brief",
+      source_channel: "Demo Research",
+      publicly_visible: true
+    )
+
+    get workspace_path
+
+    assert_select "p", "Personal Brief"
+    assert_select "p", { text: "Demo Brief", count: 0 }
   end
 
   private

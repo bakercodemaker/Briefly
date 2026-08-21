@@ -11,7 +11,7 @@ What architecture and release plan should make the agreed MVP fast to build, saf
 
 ## Answer
 
-Build one Rails monolith with bundled React/TypeScript, deployed as a Render Free Web Service with Neon Postgres. Keep the public Demo Library at `/demo`; protect every personal create, retry, delete, and library route behind one application-level owner password stored only in deployment environment variables. Do not create user accounts.
+Build one Rails monolith with bundled React/TypeScript, deployed as a Render Free Web Service with Neon Postgres. Keep the public Demo Library at `/demo`; protect every personal create, retry, archive, and library route behind one application-level owner password stored only in deployment environment variables. Do not create user accounts.
 
 An Analysis Request is persisted first and processed asynchronously through a database-backed queue running within the single Rails web service. This retains the `queued`, `processing`, `completed`, and `failed` lifecycle and bounded retry behavior without Redis, a separate worker service, or a scheduler; deployments or restarts may delay work, but the persisted status remains visible and recoverable.
 

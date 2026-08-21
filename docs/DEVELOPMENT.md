@@ -136,7 +136,7 @@ docker compose run --rm -e RAILS_ENV=test web bin/rails test test/integration/br
 Run one named test:
 
 ```sh
-docker compose run --rm -e RAILS_ENV=test web bin/rails test test/integration/brief_generation_test.rb -n /owner_can_delete/
+docker compose run --rm -e RAILS_ENV=test web bin/rails test test/integration/analysis_requests_test.rb -n /archives_a_completed_request/
 ```
 
 Run the complete Rails suite before handing off work:

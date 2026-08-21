@@ -1,6 +1,8 @@
 class AnalysisRequest < ApplicationRecord
   has_one :brief, dependent: :destroy
   LIFECYCLE_STATES = %w[queued processing completed failed cancelled].freeze
+  MAX_ACTIVE_REQUESTS = 3
+  ACTIVE_REQUEST_LOCK_KEY = 2_041_857_301
   YOUTUBE_HOSTS = %w[youtube.com www.youtube.com m.youtube.com youtu.be].freeze
 
   validates :source_url, presence: true
@@ -9,6 +11,17 @@ class AnalysisRequest < ApplicationRecord
 
   scope :active, -> { where(archived_at: nil) }
   scope :newest_first, -> { order(created_at: :desc) }
+
+  def self.at_active_capacity?
+    active.where(lifecycle_state: %w[queued processing]).count >= MAX_ACTIVE_REQUESTS
+  end
+
+  def self.reserve_active_request_slot
+    transaction do
+      connection.execute("SELECT pg_advisory_xact_lock(#{ACTIVE_REQUEST_LOCK_KEY})")
+      at_active_capacity? ? false : yield
+    end
+  end
 
   def archived?
     archived_at.present?

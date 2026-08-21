@@ -1,5 +1,6 @@
 class GenerateBriefJob < ApplicationJob
   MAX_AUTOMATIC_RETRIES = 2
+  limits_concurrency to: 1, key: ->(*) { "brief-generation" }, duration: 5.minutes
 
   def perform(analysis_request_id)
     return unless claim_queued_request(analysis_request_id)

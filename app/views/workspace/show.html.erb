@@ -18,6 +18,9 @@
     <% if @analysis_request.errors[:source_url].any? %>
       <p class="mt-3 text-sm font-medium text-rose-300"><%= @analysis_request.errors[:source_url].first %></p>
     <% end %>
+    <% if @analysis_request.errors[:base].any? %>
+      <p class="mt-3 text-sm font-medium text-rose-300"><%= @analysis_request.errors[:base].first %></p>
+    <% end %>
   </section>
 
   <% if @analysis_request_count.positive? %>

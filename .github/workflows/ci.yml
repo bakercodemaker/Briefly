@@ -50,6 +50,23 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Typecheck TypeScript
+        run: |
+          yarn install --frozen-lockfile
+          yarn typecheck
+
   test:
     runs-on: ubuntu-latest
 

@@ -21,8 +21,29 @@ class ProductionDeploymentConfigurationTest < ActiveSupport::TestCase
     assert_match(/yarn install --frozen-lockfile/, build_script)
     assert_match(/bundle exec rails assets:precompile/, build_script)
     assert_match(/bundle exec rails db:prepare/, build_script)
-    assert_match(/SolidQueue::Record\.connection\.data_source_exists\?\("solid_queue_jobs"\)/, build_script)
-    assert_match(/DISABLE_DATABASE_ENVIRONMENT_CHECK=1 bundle exec rails db:schema:load:queue/, build_script)
+    assert_no_match(/schema:load:queue/, build_script)
+    assert_no_match(/DISABLE_DATABASE_ENVIRONMENT_CHECK/, build_script)
+    assert_path_exists Rails.root.join("db/migrate/20260821150000_initialize_solid_queue_safely.rb")
+  end
+
+  test "production enforces HTTPS, host authorization, and a restrictive CSP" do
+    production = Rails.root.join("config/environments/production.rb").read
+    csp = Rails.root.join("config/initializers/content_security_policy.rb").read
+    session_store = Rails.root.join("config/initializers/session_store.rb").read
+
+    assert_match(/config\.force_ssl = true/, production)
+    assert_match(/config\.hosts = allowed_hosts/, production)
+    assert_match(/policy\.default_src :self/, csp)
+    assert_match(/policy\.object_src :none/, csp)
+    assert_match(/expire_after: 12\.hours/, session_store)
+    assert_match(/httponly: true/, session_store)
+    assert_match(/same_site: :lax/, session_store)
+  end
+
+  test "CI runs the documented TypeScript check" do
+    workflow = Rails.root.join(".github/workflows/ci.yml").read
+
+    assert_match(/yarn typecheck/, workflow)
   end
 
   test "all Rails production stores share the external database URL" do

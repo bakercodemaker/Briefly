@@ -43,7 +43,7 @@ Browser (owner or public demo reader)
 1. Create a Neon project in the region closest to your chosen Render region and copy its pooled `DATABASE_URL`.
 2. Push this repository to GitHub, GitLab, or Bitbucket. Render needs a connected Git provider; this local repository does not include a remote.
 3. In Render, create a Blueprint from the repository. It reads [`render.yaml`](render.yaml) and creates the Free `briefly` web service.
-4. Provide these Blueprint secrets when prompted: `DATABASE_URL`, `RAILS_MASTER_KEY`, `GEMINI_API_KEY`, and a long random `OWNER_PASSWORD`. Never commit any of them.
+4. Provide these Blueprint secrets when prompted: `DATABASE_URL`, `RAILS_MASTER_KEY`, `GEMINI_API_KEY`, and a long random `OWNER_PASSWORD`. Never commit any of them. The Blueprint defaults `ALLOWED_HOSTS` to `briefly.onrender.com`; add a custom domain there before serving it.
 5. After the first deployment, verify `https://<service>.onrender.com/up`, `/demo`, and the password-gated `/workspace`. The Demo Library seed hook runs once; later deployments preserve both public and private records.
 
 The Free web service can sleep after inactivity, so its first request may take about a minute. The public landing page communicates this explicitly. This is a low-volume personal workspace and portfolio demo, not a public summarisation service: the owner-only workflow is the only path that can call Gemini. Gemini's YouTube analysis remains a Preview/free-tier capability, so availability, quotas, and data-use terms can change; provider failures are presented honestly and source material should be submitted only with that boundary understood.
