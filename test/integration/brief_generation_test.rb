@@ -113,12 +113,12 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       unlock_workspace
       post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
 
-      3.times { perform_enqueued_jobs }
+      2.times { perform_enqueued_jobs }
 
       analysis_request = AnalysisRequest.last
       assert_equal "failed", analysis_request.lifecycle_state
       assert analysis_request.recoverable_failure?
-      assert_equal 2, analysis_request.automatic_retry_count
+      assert_equal 1, analysis_request.automatic_retry_count
       assert_match(/invalid Brief/i, analysis_request.failure_message)
 
       get "/workspace"
@@ -133,7 +133,6 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
     adapter = FakeGeminiAdapter.new(
       GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
       GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
-      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
       :success
     )
 
@@ -141,12 +140,12 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       unlock_workspace
       post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
 
-      3.times { perform_enqueued_jobs }
+      2.times { perform_enqueued_jobs }
 
       analysis_request = AnalysisRequest.last
       assert_equal "failed", analysis_request.lifecycle_state
       assert analysis_request.recoverable_failure?
-      assert_equal 2, analysis_request.automatic_retry_count
+      assert_equal 1, analysis_request.automatic_retry_count
 
       get "/workspace"
 
@@ -162,7 +161,45 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       assert_equal "completed", analysis_request.reload.lifecycle_state
       assert_not analysis_request.recoverable_failure?
       assert_nil analysis_request.failure_message
-      assert_equal 4, adapter.attempts
+      assert_equal 3, adapter.attempts
+    end
+  end
+
+  test "an exhausted recoverable failure releases capacity for a new request" do
+    adapter = FakeGeminiAdapter.new(
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted."),
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted.")
+    )
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+      2.times { perform_enqueued_jobs }
+
+      assert_equal "failed", AnalysisRequest.last.lifecycle_state
+
+      assert_difference("AnalysisRequest.count", 1) do
+        post "/analysis_requests", params: { analysis_request: { source_url: "https://youtu.be/newRequest" } }
+      end
+
+      assert_redirected_to workspace_path
+    end
+  end
+
+  test "a quota failure schedules the next attempt after Gemini's requested delay" do
+    adapter = FakeGeminiAdapter.new(
+      GeminiAdapter::RetryableError.new("Gemini quota is temporarily exhausted.", retry_after_seconds: 47)
+    )
+
+    with_gemini_adapter(adapter) do
+      unlock_workspace
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } }
+
+      perform_enqueued_jobs(only: GenerateBriefJob, at: Time.current)
+
+      retry_job = enqueued_jobs.last
+      assert_equal GenerateBriefJob, retry_job.fetch(:job)
+      assert_operator retry_job.fetch(:at), :>=, 46.seconds.from_now.to_f
     end
   end
 

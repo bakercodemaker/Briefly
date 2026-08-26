@@ -35,7 +35,7 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     analysis_request.update!(
       lifecycle_state: "failed",
       recoverable_failure: true,
-      automatic_retry_count: 2,
+      automatic_retry_count: 1,
       failure_message: "Gemini quota is temporarily exhausted."
     )
 
@@ -61,11 +61,9 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "an owner cannot exceed the active analysis request limit" do
+  test "an owner cannot queue a second active analysis request" do
     unlock_workspace
-    3.times do |index|
-      AnalysisRequest.create!(source_url: "https://youtu.be/active#{index}")
-    end
+    AnalysisRequest.create!(source_url: "https://youtu.be/active")
 
     assert_no_difference("AnalysisRequest.count") do
       post "/analysis_requests", params: { analysis_request: { source_url: "https://youtu.be/oneTooMany" } }
@@ -96,7 +94,7 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     unlock_workspace
     11.times do |index|
       AnalysisRequest.create!(source_url: "https://youtu.be/request#{index}").tap do |analysis_request|
-        analysis_request.update_column(:created_at, index.minutes.ago)
+        analysis_request.update_columns(lifecycle_state: "completed", active_slot: nil, created_at: index.minutes.ago)
       end
     end
 

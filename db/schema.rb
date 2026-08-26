@@ -10,11 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_21_150000) do
-  # These are extensions that must be enabled in order to support this database
-  enable_extension "pg_catalog.plpgsql"
-
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
   create_table "analysis_requests", force: :cascade do |t|
+    t.integer "active_slot"
     t.datetime "archived_at"
     t.integer "automatic_retry_count", default: 0, null: false
     t.datetime "created_at", null: false
@@ -23,24 +21,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_150000) do
     t.boolean "recoverable_failure", default: false, null: false
     t.string "source_url", null: false
     t.datetime "updated_at", null: false
+    t.index ["active_slot"], name: "index_one_active_analysis_request", unique: true
     t.index ["archived_at"], name: "index_analysis_requests_on_archived_at"
     t.index ["created_at"], name: "index_analysis_requests_on_created_at"
-    t.check_constraint "lifecycle_state::text = ANY (ARRAY['queued'::character varying::text, 'processing'::character varying::text, 'completed'::character varying::text, 'failed'::character varying::text, 'cancelled'::character varying::text])", name: "analysis_requests_lifecycle_state"
+    t.check_constraint "lifecycle_state IN ('queued', 'processing', 'completed', 'failed', 'cancelled')", name: "analysis_requests_lifecycle_state"
   end
 
   create_table "briefs", force: :cascade do |t|
-    t.bigint "analysis_request_id", null: false
+    t.integer "analysis_request_id", null: false
     t.text "content_markdown", null: false
     t.datetime "created_at", null: false
     t.integer "duration_seconds", null: false
-    t.jsonb "key_conclusions", null: false
+    t.json "key_conclusions", null: false
     t.string "output_language", null: false
     t.boolean "publicly_visible", default: false, null: false
     t.date "published_on", null: false
     t.string "source_channel", null: false
     t.string "source_title", null: false
     t.string "source_url", null: false
-    t.jsonb "structured_content", null: false
+    t.json "structured_content", null: false
     t.datetime "updated_at", null: false
     t.index ["analysis_request_id"], name: "index_briefs_on_analysis_request_id", unique: true
     t.index ["publicly_visible"], name: "index_briefs_on_publicly_visible"

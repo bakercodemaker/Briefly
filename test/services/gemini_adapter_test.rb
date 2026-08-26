@@ -68,6 +68,50 @@ class GeminiAdapterTest < ActiveSupport::TestCase
     assert_equal "Gemini timed out.", error.message
   end
 
+  test "preserves Gemini's quota retry delay" do
+    response = Response.new(
+      {
+        error: {
+          message: "Quota exceeded.",
+          details: [
+            {
+              "@type" => "type.googleapis.com/google.rpc.RetryInfo",
+              retryDelay: "47.160335681s"
+            }
+          ]
+        }
+      }.to_json,
+      "429"
+    )
+    adapter = TimeoutGeminiAdapter.new(response)
+
+    error = assert_raises(GeminiAdapter::RetryableError) do
+      adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+    end
+
+    assert_equal "Quota exceeded.", error.message
+    assert_in_delta 47.160335681, error.retry_after_seconds, 0.000001
+  end
+
+  test "reads a quota retry delay from Gemini's current error message" do
+    response = Response.new(
+      {
+        error: {
+          message: "Quota exceeded. Please retry in 53.493918152s.",
+          code: "too_many_requests"
+        }
+      }.to_json,
+      "429"
+    )
+    adapter = TimeoutGeminiAdapter.new(response)
+
+    error = assert_raises(GeminiAdapter::RetryableError) do
+      adapter.analyze(source_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_language: "pl")
+    end
+
+    assert_in_delta 53.493918152, error.retry_after_seconds, 0.000001
+  end
+
   test "treats an incomplete successful response as a retryable provider failure" do
     adapter = GeminiAdapter.new
     response = successful_response(source_title: "")

@@ -1,13 +1,13 @@
 class AnalysisRequest < ApplicationRecord
   has_one :brief, dependent: :destroy
   LIFECYCLE_STATES = %w[queued processing completed failed cancelled].freeze
-  MAX_ACTIVE_REQUESTS = 3
-  ACTIVE_REQUEST_LOCK_KEY = 2_041_857_301
+  MAX_ACTIVE_REQUESTS = 1
   YOUTUBE_HOSTS = %w[youtube.com www.youtube.com m.youtube.com youtu.be].freeze
 
   validates :source_url, presence: true
   validates :lifecycle_state, inclusion: { in: LIFECYCLE_STATES }
   validate :source_url_is_a_public_youtube_video
+  before_validation :assign_active_slot
 
   scope :active, -> { where(archived_at: nil) }
   scope :newest_first, -> { order(created_at: :desc) }
@@ -17,10 +17,9 @@ class AnalysisRequest < ApplicationRecord
   end
 
   def self.reserve_active_request_slot
-    transaction do
-      connection.execute("SELECT pg_advisory_xact_lock(#{ACTIVE_REQUEST_LOCK_KEY})")
-      at_active_capacity? ? false : yield
-    end
+    transaction { yield }
+  rescue ActiveRecord::RecordNotUnique
+    false
   end
 
   def archived?
@@ -54,6 +53,11 @@ class AnalysisRequest < ApplicationRecord
 
   def cancellable?
     lifecycle_state.in?(%w[queued processing])
+  end
+
+  def assign_active_slot
+    # The unique index permits exactly one queued or processing request.
+    self.active_slot = !archived? && lifecycle_state.in?(%w[queued processing]) ? 1 : nil
   end
 
   def retry_after_recoverable_failure!

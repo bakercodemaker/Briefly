@@ -46,15 +46,10 @@ class ProductionDeploymentConfigurationTest < ActiveSupport::TestCase
     assert_match(/yarn typecheck/, workflow)
   end
 
-  test "all Rails production stores share the external database URL" do
-    original_database_url = ENV["DATABASE_URL"]
-    ENV["DATABASE_URL"] = "postgresql://briefly:password@example.test/briefly"
-
+  test "production uses the local SQLite database" do
     production = ActiveSupport::ConfigurationFile.parse(Rails.root.join("config/database.yml")).fetch("production")
 
-    assert_equal %w[cable cache primary queue], production.keys.sort
-    assert production.values.all? { |configuration| configuration.fetch("url") == ENV.fetch("DATABASE_URL") }
-  ensure
-    ENV["DATABASE_URL"] = original_database_url
+    assert_equal "sqlite3", production.fetch("adapter")
+    assert_equal "storage/production.sqlite3", production.fetch("database")
   end
 end

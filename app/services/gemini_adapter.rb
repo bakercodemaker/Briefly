@@ -7,7 +7,14 @@ class GeminiAdapter
 
   class Error < StandardError; end
   class TerminalError < Error; end
-  class RetryableError < Error; end
+  class RetryableError < Error
+    attr_reader :retry_after_seconds
+
+    def initialize(message, retry_after_seconds: nil)
+      super(message)
+      @retry_after_seconds = retry_after_seconds
+    end
+  end
 
   INTERACTIONS_URI = URI("https://generativelanguage.googleapis.com/v1beta/interactions")
 
@@ -74,9 +81,24 @@ class GeminiAdapter
     error_details = response_body["error"]
     message = error_details["message"] if error_details.is_a?(Hash)
     message ||= "Gemini did not complete the analysis."
-    return RetryableError.new(message) if [ 408, 429 ].include?(response.code.to_i) || response.code.to_i >= 500
+    if [ 408, 429 ].include?(response.code.to_i) || response.code.to_i >= 500
+      return RetryableError.new(message, retry_after_seconds: retry_after_seconds(response, error_details))
+    end
 
     TerminalError.new(message)
+  end
+
+  def retry_after_seconds(response, error_details)
+    header_delay = response["retry-after"]&.to_f if response.is_a?(Net::HTTPResponse)
+    return header_delay if header_delay&.positive?
+
+    details = error_details["details"] if error_details.is_a?(Hash)
+    retry_delay = details&.filter_map { |detail| detail["retryDelay"] if detail.is_a?(Hash) }&.first
+    structured_delay = retry_delay.to_s[/\A(\d+(?:\.\d+)?)s\z/, 1]&.to_f
+    return structured_delay if structured_delay&.positive?
+
+    message = error_details["message"] if error_details.is_a?(Hash)
+    message.to_s[/retry in\s+(\d+(?:\.\d+)?)s/i, 1]&.to_f
   end
 
   def prompt(output_language)

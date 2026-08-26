@@ -1,6 +1,6 @@
 class GenerateBriefJob < ApplicationJob
-  MAX_AUTOMATIC_RETRIES = 2
-  limits_concurrency to: 1, key: ->(*) { "brief-generation" }, duration: 5.minutes
+  MAX_AUTOMATIC_RETRIES = 1
+  INITIAL_RETRY_DELAY = 15.seconds
 
   def perform(analysis_request_id)
     return unless claim_queued_request(analysis_request_id)
@@ -46,10 +46,12 @@ class GenerateBriefJob < ApplicationJob
     analysis_request = AnalysisRequest.find(analysis_request_id)
     Rails.logger.warn("brief_generation.retryable_failure analysis_request_id=#{analysis_request.id} retry_count=#{analysis_request.automatic_retry_count} error_class=#{error.class}")
 
+    retry_delay = nil
     retry_requested = analysis_request.with_lock do
       next false if analysis_request.archived?
 
       if analysis_request.automatic_retry_count < MAX_AUTOMATIC_RETRIES
+        retry_delay = error.retry_after_seconds || INITIAL_RETRY_DELAY * (2**analysis_request.automatic_retry_count)
         analysis_request.update!(
           lifecycle_state: "queued",
           automatic_retry_count: analysis_request.automatic_retry_count + 1,
@@ -62,7 +64,10 @@ class GenerateBriefJob < ApplicationJob
       end
     end
 
-    return self.class.perform_later(analysis_request.id) if retry_requested
+    if retry_requested
+      Rails.logger.info("brief_generation.retry_scheduled analysis_request_id=#{analysis_request.id} delay_seconds=#{retry_delay}")
+      return self.class.set(wait: retry_delay).perform_later(analysis_request.id)
+    end
 
     fail_request(analysis_request.id, error.message, recoverable: true) unless analysis_request.archived?
   end
@@ -71,6 +76,7 @@ class GenerateBriefJob < ApplicationJob
     Rails.logger.warn("brief_generation.failed analysis_request_id=#{analysis_request_id} recoverable=#{recoverable}")
     AnalysisRequest.active.where(id: analysis_request_id, lifecycle_state: "processing").update_all(
       lifecycle_state: "failed",
+      active_slot: nil,
       recoverable_failure: recoverable,
       failure_message: message,
       updated_at: Time.current
