@@ -5,7 +5,7 @@ FROM ruby:4.0.5-slim
 WORKDIR /app
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libpq-dev postgresql-client && \
+    apt-get install --no-install-recommends -y build-essential git libvips node-gyp && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=node /usr/local /usr/local
@@ -14,10 +14,13 @@ RUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg && \
     corepack enable && \
     corepack prepare yarn@1.22.22 --activate
 
-COPY Gemfile ./
+COPY Gemfile Gemfile.lock ./
 RUN bundle install
+
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
 COPY . .
 
 ENTRYPOINT ["./entrypoint.dev.sh"]
-CMD ["bin/rails", "server", "-b", "0.0.0.0"]
+CMD ["bin/dev"]

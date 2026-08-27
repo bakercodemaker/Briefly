@@ -1,12 +1,12 @@
 require "test_helper"
 
 class WorkbenchAccessTest < ActionDispatch::IntegrationTest
-  test "public visitors can see the Demo Library entry but not the Personal Workspace" do
+  test "public visitors can see the private workspace entry but not the Personal Workspace" do
     get "/"
 
     assert_response :success
     assert_select "h1", "A better way to catch up."
-    assert_select "a[href='/demo']", "Explore the Demo Library"
+    assert_select "a[href='/access']", "Unlock Personal Workspace"
 
     get "/workspace"
 

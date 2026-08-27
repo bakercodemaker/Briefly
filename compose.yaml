@@ -1,23 +1,8 @@
 services:
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: briefly_development
-      POSTGRES_USER: briefly
-      POSTGRES_PASSWORD: briefly
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U briefly -d briefly_development"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   web:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bin/dev
     environment:
       OWNER_PASSWORD: ${OWNER_PASSWORD:-briefly-development}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -26,11 +11,11 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
+      - bundle:/usr/local/bundle
       - node_modules:/app/node_modules
-    depends_on:
-      db:
-        condition: service_healthy
+      - storage:/app/storage
 
 volumes:
+  bundle:
   node_modules:
-  postgres_data:
+  storage:
