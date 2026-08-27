@@ -6,6 +6,9 @@ class AnalysisRequestsController < ApplicationController
 
     if @analysis_request.invalid?
       render_invalid_workspace_request
+    elsif !GeminiAdapter.configured?
+      @analysis_request.errors.add(:base, GeminiAdapter::NOT_CONFIGURED_MESSAGE)
+      render_invalid_workspace_request
     elsif AnalysisRequest.reserve_active_request_slot { @analysis_request.save }
       session[:active_analysis_request_id] = @analysis_request.id
       GenerateBriefJob.perform_later(@analysis_request.id)
@@ -19,7 +22,9 @@ class AnalysisRequestsController < ApplicationController
   def retry
     analysis_request = AnalysisRequest.find(params[:id])
 
-    if AnalysisRequest.reserve_active_request_slot { analysis_request.retry_after_recoverable_failure! }
+    if !GeminiAdapter.configured?
+      redirect_to workspace_path, alert: GeminiAdapter::NOT_CONFIGURED_MESSAGE
+    elsif AnalysisRequest.reserve_active_request_slot { analysis_request.retry_after_recoverable_failure! }
       GenerateBriefJob.perform_later(analysis_request.id)
       redirect_to workspace_path, notice: "Analysis request queued for another attempt."
     else

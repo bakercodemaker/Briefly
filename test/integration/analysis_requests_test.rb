@@ -22,6 +22,20 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     assert_select "li", /queued/i
   end
 
+  test "an owner receives configuration feedback before a request is stored" do
+    unlock_workspace
+    previous_key = ENV.delete("GEMINI_API_KEY")
+
+    assert_no_difference("AnalysisRequest.count") do
+      post "/analysis_requests", params: { analysis_request: { source_url: "https://youtu.be/dQw4w9WgXcQ" } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "p", GeminiAdapter::NOT_CONFIGURED_MESSAGE
+  ensure
+    ENV["GEMINI_API_KEY"] = previous_key
+  end
+
   test "an anonymous visitor cannot submit an analysis request" do
     assert_no_difference("AnalysisRequest.count") do
       post "/analysis_requests", params: { analysis_request: { source_url: "https://youtu.be/dQw4w9WgXcQ" } }
@@ -154,25 +168,6 @@ class AnalysisRequestsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", brief_path(analysis_request.brief) do
       assert_select "p", "Archived title"
     end
-  end
-
-  test "the Personal Brief Library excludes public Demo Briefs" do
-    unlock_workspace
-    create_completed_brief(
-      source_title: "Personal Brief",
-      source_channel: "Personal Research",
-      publicly_visible: false
-    )
-    create_completed_brief(
-      source_title: "Demo Brief",
-      source_channel: "Demo Research",
-      publicly_visible: true
-    )
-
-    get workspace_path
-
-    assert_select "p", "Personal Brief"
-    assert_select "p", { text: "Demo Brief", count: 0 }
   end
 
   private

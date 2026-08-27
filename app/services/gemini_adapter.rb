@@ -4,6 +4,7 @@ require "net/http"
 class GeminiAdapter
   INVALID_BRIEF_MESSAGE = "Gemini returned an invalid Brief. Please try again."
   UNREADABLE_RESPONSE_MESSAGE = "Gemini returned an unreadable Brief response."
+  NOT_CONFIGURED_MESSAGE = "Gemini is not configured. Set GEMINI_API_KEY before submitting a new Brief."
 
   class Error < StandardError; end
   class TerminalError < Error; end
@@ -17,6 +18,10 @@ class GeminiAdapter
   end
 
   INTERACTIONS_URI = URI("https://generativelanguage.googleapis.com/v1beta/interactions")
+
+  def self.configured?
+    ENV["GEMINI_API_KEY"].present?
+  end
 
   def analyze(source_url:, output_language:)
     response = post_interaction(source_url:, output_language:)
