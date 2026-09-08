@@ -37,6 +37,8 @@ The captures are representative portfolio evidence. They may show an earlier sam
 
 The application is deliberately a single Rails process model with a separate local jobs process. It does not require PostgreSQL, Redis, a separate frontend deployment, a public account system, or a hosted worker service.
 
+Briefly uses native Rails, SQLite, and Solid Queue as its primary local runtime.
+
 ## Local setup
 
 Prerequisites:
@@ -92,7 +94,7 @@ GEMINI_API_KEY=your-server-side-gemini-api-key
 GEMINI_MODEL=gemini-3.6-flash
 ```
 
-The key is optional when opening existing local Briefs, but it is required before submitting a new Analysis Request. Each person running this downloadable project must supply and manage their own Gemini credentials and quota.
+`GEMINI_API_KEY` is optional when opening existing local Briefs, but it is required before submitting a new Analysis Request. Each person running this downloadable project must supply and manage their own Gemini credentials and quota.
 
 The application sends the public YouTube URL to Gemini for processing. Review Google's current Gemini terms, quotas, and data-handling policies before using personal or sensitive source material.
 
