@@ -3,6 +3,9 @@
 /.gitignore
 /.bundle
 /.env*
+/.scratch/
+/AGENTS.md
+/docs/agents/
 
 # Ignore local secrets.
 /config/master.key

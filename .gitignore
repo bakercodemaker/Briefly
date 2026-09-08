@@ -5,11 +5,15 @@
 !/.env.example
 /config/master.key
 /config/credentials/*.key
+/config/credentials.yml.enc
 /log/*
 /tmp/*
 !/log/.keep
 !/tmp/.keep
 /node_modules
+/.scratch/
+/AGENTS.md
+/docs/agents/
 /.scratch/learn-briefly/
 /docs/DEVELOPMENT.md
 /app/assets/builds/*
