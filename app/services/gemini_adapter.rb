@@ -64,7 +64,7 @@ class GeminiAdapter
     request = Net::HTTP::Post.new(INTERACTIONS_URI)
     request["x-goog-api-key"] = ENV.fetch("GEMINI_API_KEY")
     request["Content-Type"] = "application/json"
-    model = ENV.fetch("GEMINI_MODEL", "gemini-3.7-flash")
+    model = ENV.fetch("GEMINI_MODEL", "gemini-3.6-flash")
     request.body = JSON.generate(
       model:,
       input: [

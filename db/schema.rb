@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_100000) do
   create_table "analysis_requests", force: :cascade do |t|
     t.integer "active_slot"
     t.datetime "archived_at"
@@ -28,13 +28,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
   end
 
   create_table "briefs", force: :cascade do |t|
-    t.integer "analysis_request_id", null: false
+    t.bigint "analysis_request_id", null: false
     t.text "content_markdown", null: false
     t.datetime "created_at", null: false
     t.integer "duration_seconds", null: false
     t.json "key_conclusions", null: false
     t.string "output_language", null: false
-    t.boolean "publicly_visible", default: false, null: false
     t.date "published_on", null: false
     t.string "source_channel", null: false
     t.string "source_title", null: false
@@ -42,7 +41,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
     t.json "structured_content", null: false
     t.datetime "updated_at", null: false
     t.index ["analysis_request_id"], name: "index_briefs_on_analysis_request_id", unique: true
-    t.index ["publicly_visible"], name: "index_briefs_on_publicly_visible"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|

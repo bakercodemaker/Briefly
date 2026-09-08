@@ -17,13 +17,19 @@ class EnforceOneActiveAnalysisRequest < ActiveRecord::Migration[8.1]
       SQL
     end
 
-    add_column :analysis_requests, :active_slot, :integer
-    execute "UPDATE analysis_requests SET active_slot = 1 WHERE archived_at IS NULL AND lifecycle_state IN ('queued', 'processing')"
-    add_index :analysis_requests, :active_slot, unique: true, name: "index_one_active_analysis_request"
+    add_column :analysis_requests, :active_slot, :integer unless column_exists?(:analysis_requests, :active_slot)
+    execute <<~SQL
+      UPDATE analysis_requests
+      SET active_slot = CASE
+        WHEN archived_at IS NULL AND lifecycle_state IN ('queued', 'processing') THEN 1
+        ELSE NULL
+      END
+    SQL
+    add_index :analysis_requests, :active_slot, unique: true, name: "index_one_active_analysis_request" unless index_exists?(:analysis_requests, :active_slot, name: "index_one_active_analysis_request")
   end
 
   def down
-    remove_index :analysis_requests, name: "index_one_active_analysis_request"
-    remove_column :analysis_requests, :active_slot
+    remove_index :analysis_requests, name: "index_one_active_analysis_request" if index_exists?(:analysis_requests, :active_slot, name: "index_one_active_analysis_request")
+    remove_column :analysis_requests, :active_slot if column_exists?(:analysis_requests, :active_slot)
   end
 end

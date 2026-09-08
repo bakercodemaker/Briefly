@@ -1,6 +1,7 @@
 class GenerateBriefJob < ApplicationJob
   MAX_AUTOMATIC_RETRIES = 1
   INITIAL_RETRY_DELAY = 15.seconds
+  OUTPUT_LANGUAGE = "en"
 
   def perform(analysis_request_id)
     return unless claim_queued_request(analysis_request_id)
@@ -8,14 +9,14 @@ class GenerateBriefJob < ApplicationJob
     analysis_request = AnalysisRequest.find(analysis_request_id)
     Rails.logger.info("brief_generation.started analysis_request_id=#{analysis_request.id}")
     generated_brief = Rails.logger.tagged("analysis_request_id=#{analysis_request.id}") do
-      gemini_adapter.analyze(source_url: analysis_request.source_url, output_language: "pl")
+      gemini_adapter.analyze(source_url: analysis_request.source_url, output_language: OUTPUT_LANGUAGE)
     end
 
     AnalysisRequest.transaction do
       analysis_request.lock!
       return if analysis_request.archived?
 
-      analysis_request.create_brief!(generated_brief.to_h.merge(source_url: analysis_request.source_url, output_language: "pl"))
+      analysis_request.create_brief!(generated_brief.to_h.merge(source_url: analysis_request.source_url, output_language: OUTPUT_LANGUAGE))
       analysis_request.update!(lifecycle_state: "completed", recoverable_failure: false, failure_message: nil)
     end
     Rails.logger.info("brief_generation.completed analysis_request_id=#{analysis_request.id}")

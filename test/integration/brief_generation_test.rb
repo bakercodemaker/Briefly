@@ -22,13 +22,13 @@ class BriefGenerationTest < ActionDispatch::IntegrationTest
       brief = analysis_request.brief
 
       assert_equal "completed", analysis_request.lifecycle_state
-      assert_equal [ "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "pl" ], adapter.received_arguments
+      assert_equal [ "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "en" ], adapter.received_arguments
       assert_equal [ "processing" ], adapter.lifecycle_states_seen
       assert_equal "Wykład o skupieniu", brief.source_title
       assert_equal "Kanał Wiedzy", brief.source_channel
       assert_equal Date.new(2026, 8, 1), brief.published_on
       assert_equal 1_245, brief.duration_seconds
-      assert_equal "pl", brief.output_language
+      assert_equal "en", brief.output_language
       assert_equal "## Nawyki pracy", brief.content_markdown
       assert_equal 5, brief.key_conclusions.length
       assert_equal "Nawyki pracy", brief.structured_content.fetch("sections").first.fetch("heading")
