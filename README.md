@@ -24,7 +24,7 @@ The screenshots show the main product states without requiring a hosted demo or 
 
 ![Completed Brief](docs/screenshots/completed-brief.png)
 
-The captures are representative portfolio evidence. They may show an earlier sample output language even though the current local configuration generates English Briefs.
+The captures show the current English-language product flow.
 
 ## Technology
 
