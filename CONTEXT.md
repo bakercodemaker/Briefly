@@ -1,9 +1,9 @@
 **Personal news workspace**:
-A personal-use product that helps its owner catch up on selected source material, beginning with YouTube videos, while retaining enough transparent product and engineering evidence to serve as a public portfolio project.
+A personal-use product that helps its owner catch up on selected source material, beginning with YouTube videos, while retaining enough transparent product and engineering evidence to serve as a portfolio project.
 _Avoid_: A generic content platform, a recruiter-only demo
 
 **Brief**:
-A saved, structured and detailed Polish-language account of one source item, designed to let its owner catch up without watching it. It preserves the source's concrete claims, figures, names, caveats, and reasoning; its full version is accessed from a browsable personal library.
+A saved, structured and detailed English-language account of one source item, designed to let its owner catch up without watching it. It preserves the source's concrete claims, figures, names, caveats, and reasoning; its full version is accessed from a browsable personal library.
 _Avoid_: A generic short news card, a transcript replacement, an unsaved chat response
 
 **Brief preview**:
@@ -18,12 +18,8 @@ _Avoid_: An independent news analysis, fabricated certainty
 The private, single-owner area where the owner pastes YouTube URLs and reads their saved Briefs.
 _Avoid_: A multi-user SaaS account area
 
-**Demo library**:
-A public, read-only collection of curated seeded Briefs that lets a recruiter inspect the completed product without an account, personal data, or access to the analysis workflow.
-_Avoid_: A public feed of the owner's reading history, an interactive trial that consumes API budget
-
 **Language policy**:
-The interface is English. Personal Workspace Briefs default to Polish for fast personal reading; Demo Library Briefs are English for recruiter evaluation. A Brief retains the output language used to create it.
+The interface is English. Personal Workspace Briefs default to English, and a Brief retains the output language used to create it.
 _Avoid_: Translating the interface into two product versions, assuming every Brief is in one language
 
 **On-demand summary flow**:
@@ -48,10 +44,10 @@ _Avoid_: An unbounded visible activity feed, the archive
 
 **Archived Brief**:
 A completed Brief preserved outside the active personal library after it or its Analysis Request is archived. Archiving either side applies to both: the request leaves active history and the Brief remains available through the archived-briefs area.
-_Avoid_: A deleted Brief, a public Demo Library Brief, one-sided removal
+_Avoid_: A deleted Brief, a shared public Brief, one-sided removal
 
 **Recoverable failure**:
-A temporary provider or quota failure that receives a small bounded set of automatic retries before the owner can choose an explicit manual retry. Invalid or inaccessible source URLs are not recoverable failures.
+A temporary provider or quota failure that receives one automatic retry before the owner can choose an explicit manual retry. Invalid or inaccessible source URLs are not recoverable failures.
 _Avoid_: Silent failure, endless retrying, treating an invalid URL as temporary
 
 **Brief library**:
