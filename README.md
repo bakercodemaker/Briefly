@@ -1,20 +1,51 @@
 # Briefly
 
-Briefly is a private, single-owner workspace for turning public YouTube videos into detailed, source-faithful Briefs. The interface is English; generated Briefs default to Polish so the owner can read them quickly.
+Briefly is a private, single-owner workspace for turning public YouTube videos into detailed, source-faithful Briefs. It is a downloadable portfolio project intended to run locally, not a deployed public service.
 
-## See the product
+The application demonstrates a focused Rails workflow: submit a source, persist the request, process it asynchronously with Gemini, and read the resulting immutable Brief in a small personal library.
 
-The application has one product mode: a password-gated Personal Workspace.
+## Product flow
+
+1. Unlock the password-gated Personal Workspace.
+2. Paste a public YouTube video URL.
+3. Queue an Analysis Request for background processing.
+4. Let Gemini generate an English Brief from the source.
+5. Read the saved Brief, review its key conclusions, and archive it when it is no longer active.
+
+Briefly is source-faithful by design. Generated content is constrained to the supplied source and may contain errors; it is not independent fact-checking or verified advice.
+
+## Screenshots
+
+The screenshots show the main product states without requiring a hosted demo or a shared API key.
 
 ![Locked workspace](docs/screenshots/locked-workspace.png)
 
-![Unlocked Personal Workspace](docs/screenshots/unlocked-workspace.png)
+![Personal Workspace](docs/screenshots/unlocked-workspace.png)
 
 ![Completed Brief](docs/screenshots/completed-brief.png)
 
-## Run locally
+The captures are representative portfolio evidence. They may show an earlier sample output language even though the current local configuration generates English Briefs.
 
-Briefly uses native Rails, SQLite, and Solid Queue. Ruby, Node, and Yarn must be installed locally.
+## Technology
+
+- Ruby on Rails 8.1
+- SQLite for application data and the Solid Queue database-backed job queue
+- Solid Queue for durable background Brief generation
+- Tailwind CSS 4
+- Gemini API through a small HTTP adapter seam
+- Rails integration, model, job, service, and configuration tests
+
+The application is deliberately a single Rails process model with a separate local jobs process. It does not require PostgreSQL, Redis, a separate frontend deployment, a public account system, or a hosted worker service.
+
+## Local setup
+
+Prerequisites:
+
+- Ruby matching `.ruby-version`
+- Bundler
+- Node.js and Yarn
+
+Create local environment variables and install dependencies:
 
 ```sh
 cp .env.example .env
@@ -24,49 +55,74 @@ bin/rails db:prepare
 yarn build:css
 ```
 
-Set `OWNER_PASSWORD` in `.env`. `GEMINI_API_KEY` is optional for reading existing Briefs and required only when submitting a new source.
+Set a private local password in `.env`:
 
-For the simplest local start, use the convenience command, which runs the web process, CSS watcher, and jobs process together:
+```dotenv
+OWNER_PASSWORD=choose-a-long-local-development-password
+```
+
+Start the web process, CSS watcher, and jobs process together:
 
 ```sh
 bin/dev
 ```
 
-To see each process separately, run the web server and CSS watcher in separate terminals:
+Then open <http://localhost:3000>, unlock the Personal Workspace, and submit a public YouTube URL.
+
+To run the processes separately:
 
 ```sh
 bin/rails server
-```
-
-```sh
 yarn build:css:watch
-```
-
-In another terminal, start the explicit durable jobs process:
-
-```sh
 bin/jobs start
 ```
 
-Open <http://localhost:3000>, unlock the workspace, and paste a public YouTube URL.
+Docker Compose is also retained as an optional local development path:
 
-Run the test suite with:
+```sh
+docker compose up --build
+```
+
+## Gemini API key configuration
+
+`GEMINI_API_KEY` is read only by the Rails server and must never be committed or exposed to browser code. Add your own key to `.env` when you want to generate a new Brief:
+
+```dotenv
+GEMINI_API_KEY=your-server-side-gemini-api-key
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+The key is optional when opening existing local Briefs, but it is required before submitting a new Analysis Request. Each person running this downloadable project must supply and manage their own Gemini credentials and quota.
+
+The application sends the public YouTube URL to Gemini for processing. Review Google's current Gemini terms, quotas, and data-handling policies before using personal or sensitive source material.
+
+## Tests and checks
+
+Run the Rails test suite with:
 
 ```sh
 bin/rails test
 ```
 
-## How it works
+Useful repository checks include:
 
-1. The owner submits a public YouTube URL. The request is persisted as `queued` before any provider call.
-2. Solid Queue stores the job in the same SQLite database and the separate jobs process claims it as `processing`.
-3. `GenerateBriefJob` orchestrates the replaceable `GeminiAdapter` seam. A temporary provider failure receives one automatic retry, followed by one explicit manual retry option.
-4. A completed Brief is immutable and remains in the Personal Brief Library. Archiving moves the request and Brief to Archived Briefs.
+```sh
+bin/rubocop
+bin/brakeman
+bin/bundler-audit
+```
 
-Only one queued or processing Analysis Request is allowed at a time. Invalid URLs, inaccessible sources, provider failures, and missing configuration produce visible product feedback rather than a request that stays mysteriously active.
+The Gemini adapter is tested at its HTTP boundary with controlled responses. Integration tests exercise the user-visible Rails flow without requiring a network request or a real API key.
 
-## Local-first trade-offs
+## Limitations and publication scope
 
-SQLite keeps setup portable and inspectable for a single owner. Solid Queue keeps generation durable across web-process restarts while remaining understandable as a local jobs process. This is intentionally not a hosted multi-user product: there is no public library, account system, external database, Redis service, dashboard, or horizontal worker runtime.
+This project is intentionally not a public hosted service.
 
-The Gemini adapter is tested at its HTTP boundary with controlled responses; integration tests exercise the user-visible Rails flow without network access or a provider key.
+- The Personal Workspace is single-owner and password-gated.
+- There is no registration, multi-user account system, public library, or live public generation form.
+- Gemini usage is subject to the configured account's quota, latency, availability, and model behavior.
+- A generated Brief may be incomplete or inaccurate because it is an AI-generated interpretation of a source.
+- Local SQLite storage and the local jobs process are chosen for portability and inspectability, not horizontal scale.
+- A live public deployment was evaluated and abandoned after the free-tier host introduced long delays around application wake/build behavior. A shared public Gemini key would also make reliable access unsafe under quota limits.
+
+Screenshots communicate the completed product flow without requiring visitors to wait for a sleeping free-tier service or consume someone else's Gemini quota. The repository is therefore best understood as a polished, runnable portfolio codebase that reviewers can download and inspect locally.
